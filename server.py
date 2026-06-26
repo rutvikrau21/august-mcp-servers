@@ -300,7 +300,9 @@ def cancel_company_enrichment(enrichment_id: str) -> str:
     """Cancel company enrichment."""
     return json.dumps(_delete(f"/company-enrichments/{enrichment_id}"), indent=2)
 
+# ASGI app exposed at module level so Dockerfile CMD can reference server:app
+app = mcp.streamable_http_app()
+
 if __name__ == "__main__":
     import uvicorn
-    app = mcp.streamable_http_app()
     uvicorn.run(app, host="0.0.0.0", port=8000)
