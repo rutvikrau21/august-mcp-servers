@@ -111,26 +111,15 @@ def add_leads_to_sequence(sequence_id: str, leads: List[dict], mailboxes: Option
 def add_lead_to_sequence(
     sequence_id: str,
     email: str,
-    first_name: Optional[str] = None,
-    last_name: Optional[str] = None,
-    company: Optional[str] = None,
-    city: Optional[str] = None,
-    linkedin_url: Optional[str] = None,
-    extra_fields: Optional[dict] = None,
+    fields: Optional[dict] = None,
     mailboxes: Optional[List[str]] = None,
 ) -> str:
-    """Add a single lead to a sequence with explicit fields.
-    Any sequence dynamic variables not covered above can be passed in extra_fields,
-    e.g. extra_fields={"use_case_1": "...", "practice_description": "..."}."""
-    data: dict = {}
-    if first_name: data["first_name"] = first_name
-    if last_name: data["last_name"] = last_name
-    if company: data["company"] = company
-    if city: data["city"] = city
-    if linkedin_url: data["linkedin_url"] = linkedin_url
-    if extra_fields: data.update(extra_fields)
+    """Add a single lead to a sequence.
+    - fields: flat dict of every dynamic variable the sequence requires,
+      e.g. {"first_name": "Jane", "company": "Acme", "use_case_1": "...", "city": "NYC"}
+      The required keys depend entirely on the sequence template."""
     lead: dict = {"email": email}
-    if data: lead["data"] = data
+    if fields: lead["data"] = fields
     body: dict = {"leads": [lead]}
     if mailboxes: body["settings"] = {"mailboxes": mailboxes}
     return json.dumps(_post(f"/sequences/{sequence_id}/leads", body), indent=2)
