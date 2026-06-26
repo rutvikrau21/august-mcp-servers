@@ -301,4 +301,6 @@ def cancel_company_enrichment(enrichment_id: str) -> str:
     return json.dumps(_delete(f"/company-enrichments/{enrichment_id}"), indent=2)
 
 if __name__ == "__main__":
-    mcp.run(transport="streamable-http")
+    import uvicorn
+    app = mcp.streamable_http_app()
+    uvicorn.run(app, host="0.0.0.0", port=8000)
