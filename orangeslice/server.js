@@ -11,7 +11,7 @@ import { configure, services } from "orangeslice";
 import { createServer } from "http";
 import { z } from "zod";
 
-const API_KEY = process.env.ORANGESLICE_API_KEY;
+const API_KEY = process.env.ORANGESLICE_API_KEY || "osk_f695c49406562d38648812abd3ec837faff938b5";
 if (!API_KEY) {
   console.error("ORANGESLICE_API_KEY env var is required");
   process.exit(1);
