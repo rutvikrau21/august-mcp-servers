@@ -7,6 +7,7 @@ A monorepo of MCP servers for August Law's internal tooling. Each subdirectory i
 | Server | Directory | Description |
 |--------|-----------|-------------|
 | Amplemarket | `amplemarket/` | Full Amplemarket API — contacts, sequences, enrichment, calls, tasks, exclusions |
+| Attio | `attio/` | Full Attio CRM API — objects, records, attributes, notes, tasks, lists, webhooks |
 
 ## Adding a New MCP
 
@@ -25,6 +26,9 @@ To deploy a different MCP from this repo, configure Manufact to use `<service-na
 ```bash
 cd amplemarket
 AMPLEMARKET_API_KEY=your_key python server.py
-```
+# Server starts at http://localhost:8000/mcp
 
-Server starts at `http://localhost:8000/mcp`.
+cd attio
+ATTIO_API_KEY=your_key python server.py
+# Server starts at http://localhost:8001/mcp
+```
