@@ -1,0 +1,13 @@
+{
+  "name": "orangeslice-mcp",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "orangeslice": "latest"
+  }
+}
