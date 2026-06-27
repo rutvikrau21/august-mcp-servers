@@ -1,81 +1,88 @@
 """
-Amplemarket MCP Server - FastMCP server exposing Amplemarket API as MCP tools.
-Setup: pip install mcp[cli] httpx uvicorn
-Run: AMPLEMARKET_API_KEY=your_key python server.py
+August MCPs — Single FastMCP server exposing three services:
+  • Amplemarket  (amplemarket_*) — sales outreach, enrichment, sequences, contacts
+  • OrangeSlice  (orangeslice_*) — LinkedIn B2B DB, contact info, web search, Crunchbase, AI gen
+  • Attio        (attio_*)       — full CRM: records, notes, tasks, lists, webhooks, SQL, meetings
+
+All tools are prefixed with their service name so any MCP client or LLM can
+route "use the amplemarket tools" / "use the orangeslice tools" / "use the attio tools"
+without ambiguity.
 """
 import os, json
-from typing import Optional, List
+from typing import Any, Optional, List
 import httpx
 from mcp.server.fastmcp import FastMCP
 
-BASE_URL = "https://api.amplemarket.com"
-API_KEY = os.environ.get("AMPLEMARKET_API_KEY", "")
-mcp = FastMCP("Amplemarket", host="0.0.0.0")
+mcp = FastMCP("August MCPs", host="0.0.0.0")
 
-def _headers():
-    if not API_KEY: raise RuntimeError("AMPLEMARKET_API_KEY not set.")
-    return {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
 
-def _get(path, params=None):
-    r = httpx.get(f"{BASE_URL}{path}", headers=_headers(), params=params, timeout=30)
+# ===========================================================================
+# AMPLEMARKET
+# Base URL: https://api.amplemarket.com  |  Bearer token auth
+# ===========================================================================
+
+AM_BASE_URL = "https://api.amplemarket.com"
+AM_API_KEY = os.environ.get("AMPLEMARKET_API_KEY", "amp_4b6c21fbe89749796e9d")
+
+def _am_headers():
+    if not AM_API_KEY:
+        raise RuntimeError("AMPLEMARKET_API_KEY not set.")
+    return {"Authorization": f"Bearer {AM_API_KEY}", "Content-Type": "application/json"}
+
+def _am_get(path, params=None):
+    r = httpx.get(f"{AM_BASE_URL}{path}", headers=_am_headers(), params=params, timeout=30)
     r.raise_for_status(); return r.json()
 
-def _post(path, body=None):
-    r = httpx.post(f"{BASE_URL}{path}", headers=_headers(), json=body or {}, timeout=30)
+def _am_post(path, body=None):
+    r = httpx.post(f"{AM_BASE_URL}{path}", headers=_am_headers(), json=body or {}, timeout=30)
     r.raise_for_status(); return r.json()
 
-def _patch(path, body=None):
-    r = httpx.patch(f"{BASE_URL}{path}", headers=_headers(), json=body or {}, timeout=30)
+def _am_patch(path, body=None):
+    r = httpx.patch(f"{AM_BASE_URL}{path}", headers=_am_headers(), json=body or {}, timeout=30)
     r.raise_for_status(); return r.json() if r.content else {"status": "ok"}
 
-def _delete(path, body=None):
-    r = httpx.delete(f"{BASE_URL}{path}", headers=_headers(), json=body or {}, timeout=30)
+def _am_delete(path, body=None):
+    r = httpx.delete(f"{AM_BASE_URL}{path}", headers=_am_headers(), json=body or {}, timeout=30)
     r.raise_for_status(); return r.json() if r.content else {"status": "deleted"}
 
 
-# ---------------------------------------------------------------------------
-# Account
-# ---------------------------------------------------------------------------
+# ── Account ──────────────────────────────────────────────────────────────────
 
 @mcp.tool()
-def get_account_info() -> str:
-    """Get details about the current Amplemarket account."""
-    return json.dumps(_get("/account"), indent=2)
+def amplemarket_get_account_info() -> str:
+    """[Amplemarket] Get details about the current Amplemarket account."""
+    return json.dumps(_am_get("/account"), indent=2)
 
 
-# ---------------------------------------------------------------------------
-# Contacts
-# ---------------------------------------------------------------------------
+# ── Contacts ─────────────────────────────────────────────────────────────────
 
 @mcp.tool()
-def list_contacts(page_size: int = 20) -> str:
-    """List contacts with pagination. page_size max 50."""
-    return json.dumps(_get("/contacts", {"page[size]": page_size}), indent=2)
+def amplemarket_list_contacts(page_size: int = 20) -> str:
+    """[Amplemarket] List contacts with pagination. page_size max 50."""
+    return json.dumps(_am_get("/contacts", {"page[size]": page_size}), indent=2)
 
 @mcp.tool()
-def get_contacts(ids: List[str]) -> str:
-    """Retrieve up to 20 contacts by their IDs."""
+def amplemarket_get_contacts(ids: List[str]) -> str:
+    """[Amplemarket] Retrieve up to 20 contacts by their IDs."""
     params = [("ids[]", i) for i in ids]
-    r = httpx.get(f"{BASE_URL}/contacts", headers=_headers(), params=params, timeout=30)
+    r = httpx.get(f"{AM_BASE_URL}/contacts", headers=_am_headers(), params=params, timeout=30)
     r.raise_for_status(); return json.dumps(r.json(), indent=2)
 
 @mcp.tool()
-def get_contact(contact_id: str) -> str:
-    """Retrieve a single contact by ID."""
-    return json.dumps(_get(f"/contacts/{contact_id}"), indent=2)
+def amplemarket_get_contact(contact_id: str) -> str:
+    """[Amplemarket] Retrieve a single contact by ID."""
+    return json.dumps(_am_get(f"/contacts/{contact_id}"), indent=2)
 
 @mcp.tool()
-def get_contact_by_email(email: str) -> str:
-    """Retrieve a contact by email address."""
-    return json.dumps(_get(f"/contacts/by_email/{email}"), indent=2)
+def amplemarket_get_contact_by_email(email: str) -> str:
+    """[Amplemarket] Retrieve a contact by email address."""
+    return json.dumps(_am_get(f"/contacts/by_email/{email}"), indent=2)
 
 
-# ---------------------------------------------------------------------------
-# People search & enrichment
-# ---------------------------------------------------------------------------
+# ── People search & enrichment ───────────────────────────────────────────────
 
 @mcp.tool()
-def search_people(
+def amplemarket_search_people(
     person_name: Optional[str] = None,
     person_titles: Optional[List[str]] = None,
     person_seniorities: Optional[List[str]] = None,
@@ -93,7 +100,7 @@ def search_people(
     page: int = 1,
     page_size: int = 10,
 ) -> str:
-    """Search for people with filters: titles, seniority, company, location, industry, size, revenue."""
+    """[Amplemarket] Search for people with filters: titles, seniority, company, location, industry, size, revenue."""
     body = {"page": page, "page_size": page_size}
     for k, v in [
         ("person_name", person_name), ("person_titles", person_titles),
@@ -105,10 +112,10 @@ def search_people(
         ("company_focuses", company_focuses), ("company_revenue", company_revenue),
     ]:
         if v: body[k] = v
-    return json.dumps(_post("/people/search", body), indent=2)
+    return json.dumps(_am_post("/people/search", body), indent=2)
 
 @mcp.tool()
-def find_person(
+def amplemarket_find_person(
     email: Optional[str] = None,
     linkedin_url: Optional[str] = None,
     name: Optional[str] = None,
@@ -118,8 +125,9 @@ def find_person(
     reveal_email: bool = False,
     reveal_phone_numbers: bool = False,
 ) -> str:
-    """Look up and enrich a single person. At least one identifier required (email, linkedin_url, or name+company).
-    reveal_email costs 1 email credit. reveal_phone_numbers costs 1 phone credit. Each lookup costs 0.5 credits (once per 24h)."""
+    """[Amplemarket] Look up and enrich a single person. At least one identifier required
+    (email, linkedin_url, or name+company). reveal_email costs 1 email credit.
+    reveal_phone_numbers costs 1 phone credit. Each lookup costs 0.5 credits (once per 24h)."""
     params: dict = {}
     if email: params["email"] = email
     if linkedin_url: params["linkedin_url"] = linkedin_url
@@ -129,47 +137,44 @@ def find_person(
     if company_domain: params["company_domain"] = company_domain
     if reveal_email: params["reveal_email"] = "true"
     if reveal_phone_numbers: params["reveal_phone_numbers"] = "true"
-    return json.dumps(_get("/people/find", params), indent=2)
+    return json.dumps(_am_get("/people/find", params), indent=2)
 
 @mcp.tool()
-def enrich_person(linkedin_url: Optional[str] = None, email: Optional[str] = None) -> str:
-    """Enrich a single person via the enrichments endpoint (alternative to find_person)."""
+def amplemarket_enrich_person(linkedin_url: Optional[str] = None, email: Optional[str] = None) -> str:
+    """[Amplemarket] Enrich a single person via the enrichments endpoint."""
     body = {}
     if linkedin_url: body["linkedin_url"] = linkedin_url
     if email: body["email"] = email
-    return json.dumps(_post("/people-enrichments/single", body), indent=2)
+    return json.dumps(_am_post("/people-enrichments/single", body), indent=2)
 
 @mcp.tool()
-def start_people_enrichment_batch(
+def amplemarket_start_people_enrichment_batch(
     people: List[dict],
     reveal_email: bool = False,
     reveal_phone_numbers: bool = False,
 ) -> str:
-    """Start a batch people enrichment (up to 100,000 entries).
-    Each person dict can include: email, linkedin_url, name, title, company_name, company_domain.
-    reveal_email / reveal_phone_numbers trigger credit charges."""
+    """[Amplemarket] Start a batch people enrichment (up to 100,000 entries).
+    Each person dict can include: email, linkedin_url, name, title, company_name, company_domain."""
     body: dict = {"people": people}
     if reveal_email: body["reveal_email"] = True
     if reveal_phone_numbers: body["reveal_phone_numbers"] = True
-    return json.dumps(_post("/people-enrichments", body), indent=2)
+    return json.dumps(_am_post("/people-enrichments", body), indent=2)
 
 @mcp.tool()
-def get_people_enrichment_results(enrichment_id: str) -> str:
-    """Poll people enrichment batch results by ID."""
-    return json.dumps(_get(f"/people-enrichments/{enrichment_id}"), indent=2)
+def amplemarket_get_people_enrichment_results(enrichment_id: str) -> str:
+    """[Amplemarket] Poll people enrichment batch results by ID."""
+    return json.dumps(_am_get(f"/people-enrichments/{enrichment_id}"), indent=2)
 
 @mcp.tool()
-def cancel_people_enrichment(enrichment_id: str) -> str:
-    """Cancel a running people enrichment batch. Returns partial results gathered so far."""
-    return json.dumps(_patch(f"/people/enrichment-requests/{enrichment_id}", {"status": "canceled"}), indent=2)
+def amplemarket_cancel_people_enrichment(enrichment_id: str) -> str:
+    """[Amplemarket] Cancel a running people enrichment batch."""
+    return json.dumps(_am_patch(f"/people/enrichment-requests/{enrichment_id}", {"status": "canceled"}), indent=2)
 
 
-# ---------------------------------------------------------------------------
-# Company search & enrichment
-# ---------------------------------------------------------------------------
+# ── Company search & enrichment ──────────────────────────────────────────────
 
 @mcp.tool()
-def search_companies(
+def amplemarket_search_companies(
     company_names: Optional[List[str]] = None,
     company_domains: Optional[List[str]] = None,
     company_industries: Optional[List[str]] = None,
@@ -182,7 +187,7 @@ def search_companies(
     page: int = 1,
     page_size: int = 10,
 ) -> str:
-    """Search for companies with filters."""
+    """[Amplemarket] Search for companies with filters."""
     body = {"page": page, "page_size": page_size}
     for k, v in [
         ("company_names", company_names), ("company_domains", company_domains),
@@ -192,91 +197,86 @@ def search_companies(
         ("company_keywords", company_keywords),
     ]:
         if v: body[k] = v
-    return json.dumps(_post("/companies/search", body), indent=2)
+    return json.dumps(_am_post("/companies/search", body), indent=2)
 
 @mcp.tool()
-def find_company(
+def amplemarket_find_company(
     linkedin_url: Optional[str] = None,
     domain: Optional[str] = None,
 ) -> str:
-    """Look up and enrich a single company by LinkedIn URL or domain. At least one required."""
+    """[Amplemarket] Look up and enrich a single company by LinkedIn URL or domain."""
     params: dict = {}
     if linkedin_url: params["linkedin_url"] = linkedin_url
     if domain: params["domain"] = domain
-    return json.dumps(_get("/companies/find", params), indent=2)
+    return json.dumps(_am_get("/companies/find", params), indent=2)
 
 @mcp.tool()
-def enrich_company(linkedin_url: Optional[str] = None, domain: Optional[str] = None) -> str:
-    """Enrich a single company via the enrichments endpoint (alternative to find_company)."""
+def amplemarket_enrich_company(linkedin_url: Optional[str] = None, domain: Optional[str] = None) -> str:
+    """[Amplemarket] Enrich a single company via the enrichments endpoint."""
     body = {}
     if linkedin_url: body["linkedin_url"] = linkedin_url
     if domain: body["domain"] = domain
-    return json.dumps(_post("/company-enrichments/single", body), indent=2)
+    return json.dumps(_am_post("/company-enrichments/single", body), indent=2)
 
 @mcp.tool()
-def start_company_enrichment_batch(
+def amplemarket_start_company_enrichment_batch(
     companies: List[dict],
     reveal_email: bool = False,
     reveal_phone_numbers: bool = False,
 ) -> str:
-    """Start a batch company enrichment (up to 10,000 entries).
-    Each company dict can include: linkedin_url, domain, name.
-    reveal_email / reveal_phone_numbers trigger credit charges."""
+    """[Amplemarket] Start a batch company enrichment (up to 10,000 entries).
+    Each company dict can include: linkedin_url, domain, name."""
     body: dict = {"companies": companies}
     if reveal_email: body["reveal_email"] = True
     if reveal_phone_numbers: body["reveal_phone_numbers"] = True
-    return json.dumps(_post("/company-enrichments", body), indent=2)
+    return json.dumps(_am_post("/company-enrichments", body), indent=2)
 
 @mcp.tool()
-def get_company_enrichment_results(enrichment_id: str) -> str:
-    """Poll company enrichment batch results by ID."""
-    return json.dumps(_get(f"/company-enrichments/{enrichment_id}"), indent=2)
+def amplemarket_get_company_enrichment_results(enrichment_id: str) -> str:
+    """[Amplemarket] Poll company enrichment batch results by ID."""
+    return json.dumps(_am_get(f"/company-enrichments/{enrichment_id}"), indent=2)
 
 @mcp.tool()
-def cancel_company_enrichment(enrichment_id: str) -> str:
-    """Cancel a running company enrichment batch. Returns partial results gathered so far."""
-    return json.dumps(_patch(f"/companies/enrichment-requests/{enrichment_id}", {"status": "canceled"}), indent=2)
+def amplemarket_cancel_company_enrichment(enrichment_id: str) -> str:
+    """[Amplemarket] Cancel a running company enrichment batch."""
+    return json.dumps(_am_patch(f"/companies/enrichment-requests/{enrichment_id}", {"status": "canceled"}), indent=2)
 
 
-# ---------------------------------------------------------------------------
-# Sequences
-# ---------------------------------------------------------------------------
+# ── Sequences ────────────────────────────────────────────────────────────────
 
 @mcp.tool()
-def list_sequences(
+def amplemarket_list_sequences(
     status: Optional[str] = None,
     name: Optional[str] = None,
     created_by_user_id: Optional[str] = None,
     created_by_user_email: Optional[str] = None,
     page_size: int = 20,
 ) -> str:
-    """List sequences. Filters: status (active/draft/paused), name (case-insensitive search),
-    created_by_user_id, created_by_user_email."""
+    """[Amplemarket] List sequences. Filters: status (active/draft/paused), name, created_by_user_id/email."""
     params: dict = {"page[size]": page_size}
     if status: params["status"] = status
     if name: params["name"] = name
     if created_by_user_id: params["created_by_user_id"] = created_by_user_id
     if created_by_user_email: params["created_by_user_email"] = created_by_user_email
-    return json.dumps(_get("/sequences", params), indent=2)
+    return json.dumps(_am_get("/sequences", params), indent=2)
 
 @mcp.tool()
-def add_leads_to_sequence(
+def amplemarket_add_leads_to_sequence(
     sequence_id: str,
     leads: List[dict],
     mailboxes: Optional[List[str]] = None,
     leads_distribution: Optional[str] = None,
 ) -> str:
-    """Add leads to a sequence (up to 250 per call). Each lead: {"email": "...", "data": {...}}.
-    Use add_lead_to_sequence for a single lead, or import_csv_to_sequence for CSV uploads."""
+    """[Amplemarket] Add leads to a sequence (up to 250 per call). Each lead: {"email": "...", "data": {...}}."""
     body: dict = {"leads": leads}
     settings: dict = {}
     if mailboxes: settings["mailboxes"] = mailboxes
     if leads_distribution: settings["leads_distribution"] = leads_distribution
     if settings: body["settings"] = settings
-    return json.dumps(_post(f"/sequences/{sequence_id}/leads", body), indent=2)
+    return json.dumps(_am_post(f"/sequences/{sequence_id}/leads", body), indent=2)
 
 @mcp.tool()
-def add_lead_to_sequence(
+def amplemarket_add_lead_to_sequence(
     sequence_id: str,
     email: str,
     fields: Optional[dict] = None,
@@ -285,10 +285,9 @@ def add_lead_to_sequence(
     ignore_exclusion_list: bool = False,
     ignore_duplicate_in_other_active_sequences: bool = False,
 ) -> str:
-    """Add a single lead to a sequence.
-    - fields: flat dict of every dynamic variable the sequence requires,
-      e.g. {"first_name": "Jane", "company": "Acme", "use_case_1": "...", "city": "NYC"}
-    - ignore_* overrides allow bypassing normal skip rules."""
+    """[Amplemarket] Add a single lead to a sequence.
+    fields: flat dict of dynamic variables e.g. {"first_name": "Jane", "company": "Acme"}.
+    ignore_* overrides bypass normal skip rules."""
     lead: dict = {"email": email}
     if fields: lead["data"] = fields
     if ignore_recently_contacted or ignore_exclusion_list or ignore_duplicate_in_other_active_sequences:
@@ -299,22 +298,19 @@ def add_lead_to_sequence(
         }
     body: dict = {"leads": [lead]}
     if mailboxes: body["settings"] = {"mailboxes": mailboxes}
-    return json.dumps(_post(f"/sequences/{sequence_id}/leads", body), indent=2)
+    return json.dumps(_am_post(f"/sequences/{sequence_id}/leads", body), indent=2)
 
 @mcp.tool()
-def import_csv_to_sequence(
+def amplemarket_import_csv_to_sequence(
     sequence_id: str,
     csv_content: str,
     email_column: str = "email",
     mailboxes: Optional[List[str]] = None,
     leads_distribution: Optional[str] = None,
 ) -> str:
-    """Import leads from raw CSV text into a sequence.
-    - csv_content: full CSV text including header row (copy-paste the file contents)
-    - email_column: name of the column containing email addresses (default: "email")
-    - All other columns are automatically passed as sequence dynamic fields
-    - Handles batching automatically (20 leads per request)
-    Returns a summary of how many leads were added, skipped, or failed per batch."""
+    """[Amplemarket] Import leads from raw CSV text into a sequence.
+    csv_content: full CSV text including header row. email_column: column with email addresses.
+    All other columns are passed as sequence dynamic fields. Handles batching automatically."""
     import csv, io
     reader = csv.DictReader(io.StringIO(csv_content.strip()))
     leads = []
@@ -326,7 +322,7 @@ def import_csv_to_sequence(
         if data: lead["data"] = data
         leads.append(lead)
     if not leads:
-        return json.dumps({"error": f"No leads found. Check that email_column='{email_column}' matches a column header."})
+        return json.dumps({"error": f"No leads found. Check email_column='{email_column}'."})
     settings: dict = {}
     if mailboxes: settings["mailboxes"] = mailboxes
     if leads_distribution: settings["leads_distribution"] = leads_distribution
@@ -335,7 +331,7 @@ def import_csv_to_sequence(
         batch = leads[i:i + 20]
         body: dict = {"leads": batch}
         if settings: body["settings"] = settings
-        result = _post(f"/sequences/{sequence_id}/leads", body)
+        result = _am_post(f"/sequences/{sequence_id}/leads", body)
         results.append({"batch": i // 20 + 1, "sent": len(batch), **result})
     total_added = sum(r.get("total_added_to_sequence", 0) for r in results)
     skipped = sum(
@@ -353,62 +349,57 @@ def import_csv_to_sequence(
     }, indent=2)
 
 
-# ---------------------------------------------------------------------------
-# Tasks
-# ---------------------------------------------------------------------------
+# ── Tasks (Amplemarket) ──────────────────────────────────────────────────────
 
 @mcp.tool()
-def list_tasks(
+def amplemarket_list_tasks(
     status: Optional[str] = None,
     task_type: Optional[str] = None,
     page: int = 1,
 ) -> str:
-    """List tasks. Use list_task_statuses and list_task_types to see valid filter values."""
+    """[Amplemarket] List tasks. Use amplemarket_list_task_statuses / amplemarket_list_task_types for valid filter values."""
     params: dict = {"page": page}
     if status: params["status"] = status
     if task_type: params["task_type"] = task_type
-    return json.dumps(_get("/tasks", params), indent=2)
+    return json.dumps(_am_get("/tasks", params), indent=2)
 
 @mcp.tool()
-def list_task_statuses() -> str:
-    """List all valid task status values (use as filters in list_tasks)."""
-    return json.dumps(_get("/tasks/statuses"), indent=2)
+def amplemarket_list_task_statuses() -> str:
+    """[Amplemarket] List all valid task status values."""
+    return json.dumps(_am_get("/tasks/statuses"), indent=2)
 
 @mcp.tool()
-def list_task_types() -> str:
-    """List all task types."""
-    return json.dumps(_get("/tasks/types"), indent=2)
+def amplemarket_list_task_types() -> str:
+    """[Amplemarket] List all task types."""
+    return json.dumps(_am_get("/tasks/types"), indent=2)
 
 @mcp.tool()
-def complete_task(task_id: str, set_lead_to_completed: bool = False) -> str:
-    """Mark a task as completed.
-    set_lead_to_completed: if True, also marks the associated lead as completed in the sequence."""
+def amplemarket_complete_task(task_id: str, set_lead_to_completed: bool = False) -> str:
+    """[Amplemarket] Mark a task as completed. set_lead_to_completed also marks the linked lead."""
     body: dict = {}
     if set_lead_to_completed: body["set_lead_to_completed"] = True
-    return json.dumps(_post(f"/tasks/{task_id}/complete", body), indent=2)
+    return json.dumps(_am_post(f"/tasks/{task_id}/complete", body), indent=2)
 
 @mcp.tool()
-def skip_task(task_id: str) -> str:
-    """Skip a task."""
-    return json.dumps(_post(f"/tasks/{task_id}/skip"), indent=2)
+def amplemarket_skip_task(task_id: str) -> str:
+    """[Amplemarket] Skip a task."""
+    return json.dumps(_am_post(f"/tasks/{task_id}/skip"), indent=2)
 
 
-# ---------------------------------------------------------------------------
-# Lead Lists
-# ---------------------------------------------------------------------------
+# ── Lead Lists ───────────────────────────────────────────────────────────────
 
 @mcp.tool()
-def list_lead_lists() -> str:
-    """List all lead lists."""
-    return json.dumps(_get("/lead-lists"), indent=2)
+def amplemarket_list_lead_lists() -> str:
+    """[Amplemarket] List all lead lists."""
+    return json.dumps(_am_get("/lead-lists"), indent=2)
 
 @mcp.tool()
-def get_lead_list(lead_list_id: str) -> str:
-    """Retrieve a specific lead list and poll its processing status."""
-    return json.dumps(_get(f"/lead-lists/{lead_list_id}"), indent=2)
+def amplemarket_get_lead_list(lead_list_id: str) -> str:
+    """[Amplemarket] Retrieve a specific lead list and poll its processing status."""
+    return json.dumps(_am_get(f"/lead-lists/{lead_list_id}"), indent=2)
 
 @mcp.tool()
-def create_lead_list(
+def amplemarket_create_lead_list(
     name: str,
     owner: str,
     shared: bool,
@@ -419,60 +410,45 @@ def create_lead_list(
     enrich: bool = False,
     visible: bool = True,
 ) -> str:
-    """Create a new lead list.
-    - owner: email of an existing Amplemarket user who will own the list
-    - shared: True = account-wide, False = user-specific
-    - list_type: 'linkedin', 'email', or 'titles_and_company'
-    - leads: array of lead objects matching the list_type format
-    Returns 202 Accepted. Poll get_lead_list with the returned ID to check status."""
+    """[Amplemarket] Create a new lead list.
+    owner: email of the Amplemarket user who will own it.
+    shared: True = account-wide, False = user-specific.
+    list_type: 'linkedin', 'email', or 'titles_and_company'."""
     body: dict = {
-        "name": name,
-        "owner": owner,
-        "shared": shared,
-        "type": list_type,
-        "leads": leads,
-        "visible": visible,
-        "options": {
-            "reveal_phone_numbers": reveal_phone_numbers,
-            "validate_email": validate_email,
-            "enrich": enrich,
-        },
+        "name": name, "owner": owner, "shared": shared, "type": list_type,
+        "leads": leads, "visible": visible,
+        "options": {"reveal_phone_numbers": reveal_phone_numbers, "validate_email": validate_email, "enrich": enrich},
     }
-    return json.dumps(_post("/lead-lists", body), indent=2)
+    return json.dumps(_am_post("/lead-lists", body), indent=2)
 
 @mcp.tool()
-def add_leads_to_list(lead_list_id: str, leads: List[dict]) -> str:
-    """Add leads to an existing lead list (max 10,000 per request; 20,000 total per list)."""
-    return json.dumps(_post(f"/lead-lists/{lead_list_id}/leads", {"leads": leads}), indent=2)
+def amplemarket_add_leads_to_list(lead_list_id: str, leads: List[dict]) -> str:
+    """[Amplemarket] Add leads to an existing lead list (max 10,000 per request)."""
+    return json.dumps(_am_post(f"/lead-lists/{lead_list_id}/leads", {"leads": leads}), indent=2)
 
 
-# ---------------------------------------------------------------------------
-# Email Validations
-# ---------------------------------------------------------------------------
+# ── Email Validations ────────────────────────────────────────────────────────
 
 @mcp.tool()
-def start_email_validation(emails: List[str]) -> str:
-    """Start a batch email validation job (max 100,000 emails; costs 1 credit each).
-    Returns 202 Accepted. Poll get_email_validation_results with the returned ID."""
-    return json.dumps(_post("/email-validations", {"emails": emails}), indent=2)
+def amplemarket_start_email_validation(emails: List[str]) -> str:
+    """[Amplemarket] Start a batch email validation job (max 100,000 emails; costs 1 credit each)."""
+    return json.dumps(_am_post("/email-validations", {"emails": emails}), indent=2)
 
 @mcp.tool()
-def get_email_validation_results(validation_id: str, page_size: int = 20) -> str:
-    """Get email validation results. Status: queued, processing, completed, canceled, error."""
-    return json.dumps(_get(f"/email-validations/{validation_id}", {"page[size]": page_size}), indent=2)
+def amplemarket_get_email_validation_results(validation_id: str, page_size: int = 20) -> str:
+    """[Amplemarket] Get email validation results. Status: queued, processing, completed, canceled, error."""
+    return json.dumps(_am_get(f"/email-validations/{validation_id}", {"page[size]": page_size}), indent=2)
 
 @mcp.tool()
-def cancel_email_validation(validation_id: str) -> str:
-    """Cancel a running email validation job."""
-    return json.dumps(_patch(f"/email-validations/{validation_id}", {"status": "canceled"}), indent=2)
+def amplemarket_cancel_email_validation(validation_id: str) -> str:
+    """[Amplemarket] Cancel a running email validation job."""
+    return json.dumps(_am_patch(f"/email-validations/{validation_id}", {"status": "canceled"}), indent=2)
 
 
-# ---------------------------------------------------------------------------
-# Calls
-# ---------------------------------------------------------------------------
+# ── Calls ────────────────────────────────────────────────────────────────────
 
 @mcp.tool()
-def list_calls(
+def amplemarket_list_calls(
     page_size: int = 20,
     page_after: Optional[str] = None,
     user_id: Optional[str] = None,
@@ -481,8 +457,7 @@ def list_calls(
     start_date_from: Optional[str] = None,
     start_date_to: Optional[str] = None,
 ) -> str:
-    """List logged calls. Uses cursor pagination — pass page_after from the previous response's _links.next to paginate.
-    Date filters are ISO 8601 strings, e.g. '2024-01-15T00:00:00Z'."""
+    """[Amplemarket] List logged calls. Uses cursor pagination — pass page_after from _links.next."""
     params: dict = {"page[size]": page_size}
     if page_after: params["page[after]"] = page_after
     if user_id: params["user_id"] = user_id
@@ -490,10 +465,10 @@ def list_calls(
     if to_number: params["to"] = to_number
     if start_date_from: params["start_date_from"] = start_date_from
     if start_date_to: params["start_date_to"] = start_date_to
-    return json.dumps(_get("/calls", params), indent=2)
+    return json.dumps(_am_get("/calls", params), indent=2)
 
 @mcp.tool()
-def log_call(
+def amplemarket_log_call(
     from_number: str,
     to_number: str,
     duration: int,
@@ -505,129 +480,105 @@ def log_call(
     recording_url: Optional[str] = None,
     disposition_id: Optional[str] = None,
 ) -> str:
-    """Log an external call (made outside Amplemarket's dialer).
-    - from_number / to_number: E.164 phone numbers
-    - duration: call length in seconds
-    - answered: whether the call was picked up
-    - human: True if answered by a person, False if voicemail/machine
-    - task_id: UUID of the associated Amplemarket task
-    - user_id: UUID of the user who made the call
-    - disposition_id: UUID from list_call_dispositions"""
+    """[Amplemarket] Log an external call (made outside Amplemarket's dialer).
+    from_number/to_number: E.164. duration: seconds. disposition_id from amplemarket_list_call_dispositions."""
     body: dict = {
-        "from": from_number,
-        "to": to_number,
-        "duration": duration,
-        "answered": answered,
-        "human": human,
-        "task_id": task_id,
-        "user_id": user_id,
+        "from": from_number, "to": to_number, "duration": duration,
+        "answered": answered, "human": human, "task_id": task_id, "user_id": user_id,
     }
     if transcription: body["transcription"] = transcription
     if recording_url: body["recording_url"] = recording_url
     if disposition_id: body["disposition_id"] = disposition_id
-    return json.dumps(_post("/calls", body), indent=2)
+    return json.dumps(_am_post("/calls", body), indent=2)
 
 @mcp.tool()
-def list_call_dispositions() -> str:
-    """List all available call disposition options."""
-    return json.dumps(_get("/calls/dispositions"), indent=2)
+def amplemarket_list_call_dispositions() -> str:
+    """[Amplemarket] List all available call disposition options."""
+    return json.dumps(_am_get("/calls/dispositions"), indent=2)
 
 @mcp.tool()
-def get_call_recording(call_id: str) -> str:
-    """Get call recording URL for a specific call."""
-    return json.dumps(_get(f"/calls/{call_id}/recording"), indent=2)
+def amplemarket_get_call_recording(call_id: str) -> str:
+    """[Amplemarket] Get call recording URL for a specific call."""
+    return json.dumps(_am_get(f"/calls/{call_id}/recording"), indent=2)
 
 
-# ---------------------------------------------------------------------------
-# Exclusion Lists
-# ---------------------------------------------------------------------------
+# ── Exclusion Lists ──────────────────────────────────────────────────────────
 
 @mcp.tool()
-def list_excluded_emails(page: int = 1) -> str:
-    """List all excluded email addresses."""
-    return json.dumps(_get("/exclusion-lists/emails", {"page": page}), indent=2)
+def amplemarket_list_excluded_emails(page: int = 1) -> str:
+    """[Amplemarket] List all excluded email addresses."""
+    return json.dumps(_am_get("/exclusion-lists/emails", {"page": page}), indent=2)
 
 @mcp.tool()
-def create_email_exclusions(emails: List[str]) -> str:
-    """Add email addresses to the exclusion list."""
-    return json.dumps(_post("/exclusion-lists/emails", {"emails": emails}), indent=2)
+def amplemarket_create_email_exclusions(emails: List[str]) -> str:
+    """[Amplemarket] Add email addresses to the exclusion list."""
+    return json.dumps(_am_post("/exclusion-lists/emails", {"emails": emails}), indent=2)
 
 @mcp.tool()
-def delete_email_exclusions(emails: List[str]) -> str:
-    """Remove email addresses from the exclusion list."""
-    return json.dumps(_delete("/exclusion-lists/emails", {"emails": emails}), indent=2)
+def amplemarket_delete_email_exclusions(emails: List[str]) -> str:
+    """[Amplemarket] Remove email addresses from the exclusion list."""
+    return json.dumps(_am_delete("/exclusion-lists/emails", {"emails": emails}), indent=2)
 
 @mcp.tool()
-def list_excluded_domains(page: int = 1) -> str:
-    """List all excluded domains."""
-    return json.dumps(_get("/exclusion-lists/domains", {"page": page}), indent=2)
+def amplemarket_list_excluded_domains(page: int = 1) -> str:
+    """[Amplemarket] List all excluded domains."""
+    return json.dumps(_am_get("/exclusion-lists/domains", {"page": page}), indent=2)
 
 @mcp.tool()
-def create_domain_exclusions(domains: List[str]) -> str:
-    """Add domains to the exclusion list."""
-    return json.dumps(_post("/exclusion-lists/domains", {"domains": domains}), indent=2)
+def amplemarket_create_domain_exclusions(domains: List[str]) -> str:
+    """[Amplemarket] Add domains to the exclusion list."""
+    return json.dumps(_am_post("/exclusion-lists/domains", {"domains": domains}), indent=2)
 
 @mcp.tool()
-def delete_domain_exclusions(domains: List[str]) -> str:
-    """Remove domains from the exclusion list."""
-    return json.dumps(_delete("/exclusion-lists/domains", {"domains": domains}), indent=2)
+def amplemarket_delete_domain_exclusions(domains: List[str]) -> str:
+    """[Amplemarket] Remove domains from the exclusion list."""
+    return json.dumps(_am_delete("/exclusion-lists/domains", {"domains": domains}), indent=2)
 
 
-# ---------------------------------------------------------------------------
-# Mailboxes
-# ---------------------------------------------------------------------------
+# ── Mailboxes ─────────────────────────────────────────────────────────────────
 
 @mcp.tool()
-def list_mailboxes(
+def amplemarket_list_mailboxes(
     status: Optional[str] = None,
     email_provider: Optional[str] = None,
     user_email: Optional[str] = None,
     page_size: int = 20,
 ) -> str:
-    """List mailboxes.
-    - status: 'active', 'inactive', or 'needs_reconnection'
-    - email_provider: 'google', 'outlook', 'other', or 'other_mixed'
-    - user_email: filter to a specific user's mailboxes"""
+    """[Amplemarket] List mailboxes. status: 'active'|'inactive'|'needs_reconnection'.
+    email_provider: 'google'|'outlook'|'other'|'other_mixed'."""
     params: dict = {"page[size]": page_size}
     if status: params["status"] = status
     if email_provider: params["email_provider"] = email_provider
     if user_email: params["user_email"] = user_email
-    return json.dumps(_get("/mailboxes", params), indent=2)
+    return json.dumps(_am_get("/mailboxes", params), indent=2)
 
 @mcp.tool()
-def update_mailbox_daily_limit(mailbox_id: str, daily_limit: int) -> str:
-    """Update a mailbox's daily email sending limit. Rate-limited to 1/minute and 1/hour per mailbox."""
-    return json.dumps(_patch(f"/mailboxes/{mailbox_id}", {"daily_limit": daily_limit}), indent=2)
+def amplemarket_update_mailbox_daily_limit(mailbox_id: str, daily_limit: int) -> str:
+    """[Amplemarket] Update a mailbox's daily email sending limit."""
+    return json.dumps(_am_patch(f"/mailboxes/{mailbox_id}", {"daily_limit": daily_limit}), indent=2)
 
 
-# ---------------------------------------------------------------------------
-# Users
-# ---------------------------------------------------------------------------
+# ── Users ─────────────────────────────────────────────────────────────────────
 
 @mcp.tool()
-def list_users(
+def amplemarket_list_users(
     status: Optional[str] = None,
     role: Optional[str] = None,
     email: Optional[str] = None,
     page_size: int = 20,
 ) -> str:
-    """List team members/users.
-    - status: filter by user status (e.g. 'active', 'inactive')
-    - role: filter by role (e.g. 'admin', 'sales_rep')
-    - email: filter by exact email address"""
+    """[Amplemarket] List team members/users. status, role, email filters available."""
     params: dict = {"page[size]": page_size}
     if status: params["status"] = status
     if role: params["role"] = role
     if email: params["email"] = email
-    return json.dumps(_get("/users", params), indent=2)
+    return json.dumps(_am_get("/users", params), indent=2)
 
 
-# ---------------------------------------------------------------------------
-# CRM Accounts
-# ---------------------------------------------------------------------------
+# ── CRM Accounts ─────────────────────────────────────────────────────────────
 
 @mcp.tool()
-def list_accounts(
+def amplemarket_list_accounts(
     page: int = 1,
     name: Optional[str] = None,
     domain: Optional[str] = None,
@@ -635,27 +586,25 @@ def list_accounts(
     tags: Optional[List[str]] = None,
     page_size: int = 10,
 ) -> str:
-    """List CRM accounts. Filters: name (partial match), domain (exact), owner_email (exact), tags."""
+    """[Amplemarket] List CRM accounts. Filters: name (partial), domain (exact), owner_email, tags."""
     params: dict = {"page": page, "page[size]": page_size}
     if name: params["name"] = name
     if domain: params["domain"] = domain
     if owner_email: params["owner_email"] = owner_email
     if tags:
         for tag in tags: params.setdefault("tags[]", []).append(tag)
-    return json.dumps(_get("/accounts", params), indent=2)
+    return json.dumps(_am_get("/accounts", params), indent=2)
 
 @mcp.tool()
-def get_crm_account(account_id: str) -> str:
-    """Retrieve a specific CRM account by ID."""
-    return json.dumps(_get(f"/accounts/{account_id}"), indent=2)
+def amplemarket_get_crm_account(account_id: str) -> str:
+    """[Amplemarket] Retrieve a specific CRM account by ID."""
+    return json.dumps(_am_get(f"/accounts/{account_id}"), indent=2)
 
 
-# ---------------------------------------------------------------------------
-# Job Openings
-# ---------------------------------------------------------------------------
+# ── Job Openings ──────────────────────────────────────────────────────────────
 
 @mcp.tool()
-def list_job_openings(
+def amplemarket_list_job_openings(
     company_id: Optional[str] = None,
     domain: Optional[str] = None,
     linkedin_url: Optional[str] = None,
@@ -665,8 +614,7 @@ def list_job_openings(
     only_remote: bool = False,
     page_size: int = 10,
 ) -> str:
-    """List job openings for a company. At least one of company_id, domain, or linkedin_url is required.
-    person_seniorities values: Owner, Founder, C-Suite, Partner, VP, Head, Director, Manager, Senior, Entry, Intern, Other."""
+    """[Amplemarket] List job openings for a company. At least one of company_id, domain, or linkedin_url required."""
     params: dict = {"page[size]": page_size}
     if company_id: params["company_id"] = company_id
     if domain: params["domain"] = domain
@@ -678,49 +626,38 @@ def list_job_openings(
     if person_job_functions:
         for f in person_job_functions: params.setdefault("person_job_functions[]", []).append(f)
     if only_remote: params["only_remote"] = "true"
-    return json.dumps(_get("/job-openings", params), indent=2)
+    return json.dumps(_am_get("/job-openings", params), indent=2)
 
 @mcp.tool()
-def get_job_opening(job_opening_id: str) -> str:
-    """Retrieve a specific job opening by ID."""
-    return json.dumps(_get(f"/job-openings/{job_opening_id}"), indent=2)
+def amplemarket_get_job_opening(job_opening_id: str) -> str:
+    """[Amplemarket] Retrieve a specific job opening by ID."""
+    return json.dumps(_am_get(f"/job-openings/{job_opening_id}"), indent=2)
 
 
-# ---------------------------------------------------------------------------
-# Phone Numbers
-# ---------------------------------------------------------------------------
+# ── Phone Numbers ─────────────────────────────────────────────────────────────
 
 @mcp.tool()
-def flag_phone_number(phone_number_id: str, user_id: str) -> str:
-    """Flag a phone number as wrong/incorrect for review.
-    - phone_number_id: ID of the phone number to flag
-    - user_id: UUID of the user submitting the report"""
-    return json.dumps(_post(f"/phone_numbers/{phone_number_id}/review", {
-        "user_id": user_id,
-        "reason": "wrong_number",
+def amplemarket_flag_phone_number(phone_number_id: str, user_id: str) -> str:
+    """[Amplemarket] Flag a phone number as wrong/incorrect for review."""
+    return json.dumps(_am_post(f"/phone_numbers/{phone_number_id}/review", {
+        "user_id": user_id, "reason": "wrong_number",
     }), indent=2)
 
 
-# ---------------------------------------------------------------------------
-# Custom Signals (Duo Copilot)
-# ---------------------------------------------------------------------------
+# ── Custom Signals ────────────────────────────────────────────────────────────
 
 @mcp.tool()
-def create_custom_signal_entry(token: str, data: dict) -> str:
-    """Submit a custom signal entry to Amplemarket's Duo Copilot via webhook.
-    - token: your custom signal token (from Amplemarket settings)
-    - data: the signal payload as a dict"""
-    return json.dumps(_post(f"/custom_signals/{token}/entries", data), indent=2)
+def amplemarket_create_custom_signal_entry(token: str, data: dict) -> str:
+    """[Amplemarket] Submit a custom signal entry to Duo Copilot via webhook.
+    token: your custom signal token. data: the signal payload."""
+    return json.dumps(_am_post(f"/custom_signals/{token}/entries", data), indent=2)
 
 
-# ---------------------------------------------------------------------------
-# OrangeSlice enrichment tools
-# These tools proxy to a local Node.js OrangeSlice sidecar (port 8002) that
-# runs the official orangeslice npm package. The sidecar is started by the
-# container entrypoint (start.sh) before this server comes up.
-# Using the npm package means we never hardcode OrangeSlice internals — any
-# upstream URL / API changes are handled by bumping the npm package version.
-# ---------------------------------------------------------------------------
+# ===========================================================================
+# ORANGESLICE
+# OrangeSlice is accessed via a Node.js sidecar on port 8002 that uses the
+# official `orangeslice` npm package. Tools proxy JSON-RPC calls to the sidecar.
+# ===========================================================================
 
 OS_MCP_URL = "http://localhost:8002/mcp"
 _os_session_id: Optional[str] = None
@@ -733,7 +670,7 @@ def _os_get_session() -> str:
     headers = {"Content-Type": "application/json", "Accept": "application/json, text/event-stream"}
     r = httpx.post(OS_MCP_URL, json={
         "jsonrpc": "2.0", "id": 0, "method": "initialize",
-        "params": {"protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": {"name": "amplemarket-proxy", "version": "1"}}
+        "params": {"protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": {"name": "august-proxy", "version": "1"}}
     }, headers=headers, timeout=15)
     r.raise_for_status()
     _os_session_id = r.headers.get("mcp-session-id", "")
@@ -741,7 +678,6 @@ def _os_get_session() -> str:
 
 def _os_call(tool_name: str, arguments: dict) -> str:
     """Call a tool on the local OrangeSlice MCP sidecar and return its text result."""
-    # Strip None values — sidecar Zod schemas reject null for optional string fields
     clean_args = {k: v for k, v in arguments.items() if v is not None}
     session_id = _os_get_session()
     headers = {
@@ -755,7 +691,6 @@ def _os_call(tool_name: str, arguments: dict) -> str:
     }
     r = httpx.post(OS_MCP_URL, json=payload, headers=headers, timeout=120)
     r.raise_for_status()
-    # StreamableHTTP returns SSE — extract first data line
     for line in r.text.splitlines():
         if line.startswith("data:"):
             body = json.loads(line[5:].strip())
@@ -768,105 +703,859 @@ def _os_call(tool_name: str, arguments: dict) -> str:
 
 
 @mcp.tool()
-def os_enrich_person(linkedin_url: Optional[str] = None, username: Optional[str] = None, extended: bool = False) -> str:
-    """Enrich a person from the LinkedIn B2B database by LinkedIn URL or username.
+def orangeslice_enrich_person(linkedin_url: Optional[str] = None, username: Optional[str] = None, extended: bool = False) -> str:
+    """[OrangeSlice] Enrich a person from the LinkedIn B2B database by LinkedIn URL or username.
     Returns name, title, company, headline, location, skills, and more. Credits: 1."""
     return _os_call("enrich_person", {"url": linkedin_url, "username": username, "extended": extended})
 
-
 @mcp.tool()
-def os_enrich_company(domain: Optional[str] = None, linkedin_slug: Optional[str] = None, linkedin_url: Optional[str] = None, extended: bool = False) -> str:
-    """Enrich a company from the LinkedIn B2B database by domain, LinkedIn slug, or LinkedIn URL.
+def orangeslice_enrich_company(domain: Optional[str] = None, linkedin_slug: Optional[str] = None, linkedin_url: Optional[str] = None, extended: bool = False) -> str:
+    """[OrangeSlice] Enrich a company from the LinkedIn B2B database by domain, LinkedIn slug, or URL.
     Returns name, description, industry, employee count, website, location. Credits: 1."""
     return _os_call("enrich_company", {"domain": domain, "shorthand": linkedin_slug, "url": linkedin_url, "extended": extended})
 
-
 @mcp.tool()
-def os_search_linkedin(sql: str) -> str:
-    """Run SQL against the LinkedIn B2B database (linkedin_profile, linkedin_company, lkd_profile, lkd_company tables).
-    Use for indexed lookups: person by slug, company by domain/slug/industry_code, employees at a company.
-    Always include LIMIT. Avoid ORDER BY on large non-indexed columns. Credits: 1/row."""
+def orangeslice_search_linkedin_people(sql: str) -> str:
+    """[OrangeSlice] Run SQL against the LinkedIn B2B people database (lkd_profile table).
+    Use for indexed lookups: person by slug, employees at a company, title/location filters.
+    Always include LIMIT. Credits: 1/row.
+    Example: SELECT * FROM lkd_profile WHERE company_slug = 'microsoft' LIMIT 25"""
     return _os_call("search_people_linkedin", {"sql": sql})
 
-
 @mcp.tool()
-def os_search_companies_linkedin(sql: str) -> str:
-    """Run SQL against the LinkedIn B2B company database (linkedin_company).
+def orangeslice_search_linkedin_companies(sql: str) -> str:
+    """[OrangeSlice] Run SQL against the LinkedIn B2B company database (lkd_company table).
     Use for lookups by domain, slug, industry_code, country_code, employee_count.
-    Always include LIMIT. Credits: 1/row."""
+    Always include LIMIT. Credits: 1/row.
+    Example: SELECT * FROM lkd_company WHERE domain = 'stripe.com' LIMIT 5"""
     return _os_call("search_companies_linkedin", {"sql": sql})
 
-
 @mcp.tool()
-def os_find_person_linkedin_url(name: Optional[str] = None, title: Optional[str] = None, company: Optional[str] = None, keyword: Optional[str] = None, location: Optional[str] = None, email: Optional[str] = None) -> str:
-    """Find a person's LinkedIn profile URL by name, company, title, or email.
+def orangeslice_find_person_linkedin_url(
+    name: Optional[str] = None,
+    title: Optional[str] = None,
+    company: Optional[str] = None,
+    keyword: Optional[str] = None,
+    location: Optional[str] = None,
+    email: Optional[str] = None,
+) -> str:
+    """[OrangeSlice] Find a person's LinkedIn profile URL by name, company, title, or email.
     Credits: 2 (name search) or 50 (reverse email lookup)."""
-    return _os_call("find_person_linkedin_url", {k: v for k, v in {"name": name, "title": title, "company": company, "keyword": keyword, "location": location, "email": email}.items() if v is not None})
-
+    return _os_call("find_person_linkedin_url", {k: v for k, v in {
+        "name": name, "title": title, "company": company,
+        "keyword": keyword, "location": location, "email": email,
+    }.items() if v is not None})
 
 @mcp.tool()
-def os_get_contact_info(required: List[str], linkedin_url: Optional[str] = None, first_name: Optional[str] = None, last_name: Optional[str] = None, company: Optional[str] = None, domain: Optional[str] = None) -> str:
-    """Get verified email and/or phone for a person. Slow (up to 10 min).
-    required: list containing 'email', 'phone', and/or 'work_email'.
+def orangeslice_get_contact_info(
+    required: List[str],
+    linkedin_url: Optional[str] = None,
+    first_name: Optional[str] = None,
+    last_name: Optional[str] = None,
+    company: Optional[str] = None,
+    domain: Optional[str] = None,
+) -> str:
+    """[OrangeSlice] Get verified email and/or phone for a person. Can take up to 10 minutes.
+    required: list of 'email', 'phone', and/or 'work_email'.
     Credits: up to 275 (email+phone), 250 (phone only), 25 (email only)."""
-    return _os_call("get_contact_info", {k: v for k, v in {"required": required, "linkedinUrl": linkedin_url, "firstName": first_name, "lastName": last_name, "company": company, "domain": domain}.items() if v is not None})
-
+    return _os_call("get_contact_info", {k: v for k, v in {
+        "required": required, "linkedinUrl": linkedin_url,
+        "firstName": first_name, "lastName": last_name,
+        "company": company, "domain": domain,
+    }.items() if v is not None})
 
 @mcp.tool()
-def os_get_company_employees(company_slug: Optional[str] = None, linkedin_url: Optional[str] = None, search_strategy: str = "database", title_variations: Optional[List[str]] = None, title_sql_filter: Optional[str] = None, limit: int = 25, us_only: bool = True, min_connections: int = 20, offset: int = 0) -> str:
-    """Find employees at a company using LinkedIn data.
-    search_strategy: 'database' (IC/Director roles, fast) or 'web' (C-Suite/Founders only, max 3 title_variations).
+def orangeslice_get_company_employees(
+    company_slug: Optional[str] = None,
+    linkedin_url: Optional[str] = None,
+    search_strategy: str = "database",
+    title_variations: Optional[List[str]] = None,
+    title_sql_filter: Optional[str] = None,
+    limit: int = 25,
+    us_only: bool = True,
+    min_connections: int = 20,
+    offset: int = 0,
+) -> str:
+    """[OrangeSlice] Find employees at a company using LinkedIn data.
+    search_strategy: 'database' (IC/Director, fast) or 'web' (C-Suite/Founders, max 3 title_variations).
     Credits: 1/result."""
-    return _os_call("get_company_employees", {k: v for k, v in {"companySlug": company_slug, "linkedinUrl": linkedin_url, "searchStrategy": search_strategy, "titleVariations": title_variations, "titleSqlFilter": title_sql_filter, "limit": limit, "usOnly": us_only, "minConnections": min_connections, "offset": offset}.items() if v is not None})
-
+    return _os_call("get_company_employees", {k: v for k, v in {
+        "companySlug": company_slug, "linkedinUrl": linkedin_url,
+        "searchStrategy": search_strategy, "titleVariations": title_variations,
+        "titleSqlFilter": title_sql_filter, "limit": limit,
+        "usOnly": us_only, "minConnections": min_connections, "offset": offset,
+    }.items() if v is not None})
 
 @mcp.tool()
-def os_get_company_revenue(domain: str) -> str:
-    """Get company revenue, employee count, headquarters, industry, and funding from a domain.
+def orangeslice_get_company_revenue(domain: str) -> str:
+    """[OrangeSlice] Get company revenue, employee count, HQ, industry, and funding from a domain.
     Credits: 2."""
     return _os_call("get_company_revenue", {"domain": domain})
 
-
 @mcp.tool()
-def os_web_search(query: str, domain: Optional[str] = None, page: int = 1, time_filter: Optional[str] = None) -> str:
-    """Search Google SERP. Best tool for prospecting and discovery.
+def orangeslice_web_search(
+    query: str,
+    domain: Optional[str] = None,
+    page: int = 1,
+    time_filter: Optional[str] = None,
+) -> str:
+    """[OrangeSlice] Search Google SERP. Best for prospecting and discovery.
     Supports site:, "exact phrase", OR, -exclude operators.
     time_filter: qdr:h (hour), qdr:d (day), qdr:w (week), qdr:m (month), qdr:y (year).
     Credits: 1."""
-    return _os_call("web_search", {k: v for k, v in {"query": query, "domain": domain, "page": page, "tbs": time_filter}.items() if v is not None})
-
+    return _os_call("web_search", {k: v for k, v in {
+        "query": query, "domain": domain, "page": page, "tbs": time_filter,
+    }.items() if v is not None})
 
 @mcp.tool()
-def os_scrape_website(url: str, format: str = "markdown") -> str:
-    """Scrape a website URL and return its content. format: 'markdown', 'text', or 'html'. Credits: 1."""
+def orangeslice_scrape_website(url: str, format: str = "markdown") -> str:
+    """[OrangeSlice] Scrape a website URL and return its content.
+    format: 'markdown' (default), 'text', or 'html'. Credits: 1."""
     return _os_call("scrape_website", {"url": url, "format": format})
 
-
 @mcp.tool()
-def os_search_crunchbase(sql: str) -> str:
-    """Run SQL against Crunchbase startup database (public.crunchbase_scraper_lean).
+def orangeslice_search_crunchbase(sql: str) -> str:
+    """[OrangeSlice] Run SQL against the Crunchbase startup database (public.crunchbase_scraper_lean).
     Filter by operating_status, funding_total_usd, last_funding_type, founded_on, country_code.
     Must include LIMIT (max 100). Credits: 1/row."""
     return _os_call("search_crunchbase", {"sql": sql})
 
-
 @mcp.tool()
-def os_ai_generate_object(prompt: str, schema: dict) -> str:
-    """Use AI to extract or classify data into a structured JSON object.
-    prompt: instruction and input text. schema: JSON Schema describing the output."""
+def orangeslice_ai_generate_object(prompt: str, schema: dict) -> str:
+    """[OrangeSlice] Use AI to extract or classify data into a structured JSON object.
+    prompt: instruction and input text. schema: JSON Schema describing the output structure."""
     return _os_call("ai_generate_object", {"prompt": prompt, "schema": schema})
 
+@mcp.tool()
+def orangeslice_google_maps_search(query: str, location: Optional[str] = None, limit: int = 20) -> str:
+    """[OrangeSlice] Search businesses via Google Maps. Returns name, address, phone, website, rating.
+    Credits: 1."""
+    return _os_call("search_google_maps", {k: v for k, v in {
+        "query": query, "location": location, "limit": limit,
+    }.items() if v is not None})
+
+
+# ===========================================================================
+# ATTIO
+# Base URL: https://api.attio.com/v2  |  Bearer token auth
+# Full CRM: records, notes, tasks, lists, webhooks, SQL, meetings, and more.
+# ===========================================================================
+
+ATTIO_BASE_URL = "https://api.attio.com/v2"
+ATTIO_API_KEY = os.environ.get("ATTIO_API_KEY", "a46ef67f2b875c2bd713f5e88b1c71cf9c59fba9a8eac1e9a5169f329d559b40")
+
+def _at_headers() -> dict:
+    return {"Authorization": f"Bearer {ATTIO_API_KEY}", "Content-Type": "application/json"}
+
+def _at_get(path: str, params: dict | None = None) -> dict:
+    r = httpx.get(ATTIO_BASE_URL + path, headers=_at_headers(), params=params or {}, timeout=30)
+    r.raise_for_status(); return r.json()
+
+def _at_post(path: str, body: dict | None = None) -> dict:
+    r = httpx.post(ATTIO_BASE_URL + path, headers=_at_headers(), json=body or {}, timeout=30)
+    r.raise_for_status(); return r.json()
+
+def _at_put(path: str, body: dict | None = None) -> dict:
+    r = httpx.put(ATTIO_BASE_URL + path, headers=_at_headers(), json=body or {}, timeout=30)
+    r.raise_for_status(); return r.json()
+
+def _at_patch(path: str, body: dict | None = None) -> dict:
+    r = httpx.patch(ATTIO_BASE_URL + path, headers=_at_headers(), json=body or {}, timeout=30)
+    r.raise_for_status(); return r.json()
+
+def _at_delete(path: str) -> dict:
+    r = httpx.delete(ATTIO_BASE_URL + path, headers=_at_headers(), timeout=30)
+    if r.status_code == 204: return {"success": True}
+    r.raise_for_status(); return r.json()
+
+
+# ── Workspace ─────────────────────────────────────────────────────────────────
 
 @mcp.tool()
-def os_google_maps_search(query: str, location: Optional[str] = None, limit: int = 20) -> str:
-    """Search businesses via Google Maps. Returns name, address, phone, website, rating.
-    Credits: 1."""
-    return _os_call("search_google_maps", {k: v for k, v in {"query": query, "location": location, "limit": limit}.items() if v is not None})
+def attio_get_self() -> str:
+    """[Attio] Return information about the current authenticated workspace and user."""
+    return json.dumps(_at_get("/self"), indent=2)
+
+@mcp.tool()
+def attio_list_workspace_members() -> str:
+    """[Attio] List all members of the Attio workspace."""
+    return json.dumps(_at_get("/workspace_members"), indent=2)
+
+@mcp.tool()
+def attio_get_workspace_member(member_id: str) -> str:
+    """[Attio] Get a specific workspace member by ID (UUID)."""
+    return json.dumps(_at_get(f"/workspace_members/{member_id}"), indent=2)
 
 
-# ---------------------------------------------------------------------------
+# ── Object schema ──────────────────────────────────────────────────────────────
+
+@mcp.tool()
+def attio_list_objects() -> str:
+    """[Attio] List all object types (people, companies, deals, custom objects) in the workspace."""
+    return json.dumps(_at_get("/objects"), indent=2)
+
+@mcp.tool()
+def attio_get_object(object_slug: str) -> str:
+    """[Attio] Get the schema for a specific object type.
+    object_slug: e.g. 'people', 'companies', 'deals', or a custom slug."""
+    return json.dumps(_at_get(f"/objects/{object_slug}"), indent=2)
+
+@mcp.tool()
+def attio_list_attributes(object_slug: str) -> str:
+    """[Attio] List all attributes defined on an object type.
+    object_slug: e.g. 'people', 'companies', 'deals'."""
+    return json.dumps(_at_get(f"/objects/{object_slug}/attributes"), indent=2)
+
+@mcp.tool()
+def attio_get_attribute(object_slug: str, attribute_slug: str) -> str:
+    """[Attio] Get a specific attribute definition on an object type."""
+    return json.dumps(_at_get(f"/objects/{object_slug}/attributes/{attribute_slug}"), indent=2)
+
+@mcp.tool()
+def attio_list_statuses(object_slug: str, attribute_slug: str) -> str:
+    """[Attio] List allowed statuses for a status-type attribute (e.g. deals stage)."""
+    return json.dumps(_at_get(f"/objects/{object_slug}/attributes/{attribute_slug}/statuses"), indent=2)
+
+@mcp.tool()
+def attio_list_select_options(object_slug: str, attribute_slug: str) -> str:
+    """[Attio] List allowed options for a select or multi-select attribute."""
+    return json.dumps(_at_get(f"/objects/{object_slug}/attributes/{attribute_slug}/options"), indent=2)
+
+
+# ── Records ────────────────────────────────────────────────────────────────────
+
+@mcp.tool()
+def attio_query_records(
+    object_slug: str,
+    filter_by: Optional[dict] = None,
+    sorts: Optional[list] = None,
+    limit: int = 20,
+    offset: int = 0,
+) -> str:
+    """[Attio] Query records for any object type with optional filtering and sorting.
+    object_slug: e.g. 'people', 'companies', 'deals'.
+    filter_by examples:
+      {"name": {"$contains": "Acme"}}
+      {"email_addresses": {"email_address": {"$eq": "john@example.com"}}}
+      {"domains": {"domain": {"$eq": "acme.com"}}}
+    Operators: $eq, $not_eq, $contains, $gt, $gte, $lt, $lte, $is_empty, $not_empty.
+    sorts: [{"attribute": "name", "direction": "asc"}]
+    limit: max 500."""
+    body: dict[str, Any] = {"limit": limit, "offset": offset}
+    if filter_by: body["filter"] = filter_by
+    if sorts: body["sorts"] = sorts
+    return json.dumps(_at_post(f"/objects/{object_slug}/records/query", body), indent=2)
+
+@mcp.tool()
+def attio_get_record(object_slug: str, record_id: str) -> str:
+    """[Attio] Get a single record by ID.
+    object_slug: e.g. 'people', 'companies', 'deals'. record_id: UUID."""
+    return json.dumps(_at_get(f"/objects/{object_slug}/records/{record_id}"), indent=2)
+
+@mcp.tool()
+def attio_create_record(object_slug: str, values: dict) -> str:
+    """[Attio] Create a new record with raw attribute values.
+    values: dict where each key is an attribute slug and value is a list of value objects.
+    Example for person: {"name": [{"first_name": "Jane", "last_name": "Doe", "full_name": "Jane Doe"}],
+                         "email_addresses": [{"email_address": "jane@example.com"}]}
+    Example for company: {"name": [{"value": "Acme"}], "domains": [{"domain": "acme.com"}]}"""
+    return json.dumps(_at_post(f"/objects/{object_slug}/records", {"data": {"values": values}}), indent=2)
+
+@mcp.tool()
+def attio_update_record(object_slug: str, record_id: str, values: dict) -> str:
+    """[Attio] Update attribute values on an existing record (PATCH — partial update).
+    values: same format as attio_create_record values."""
+    return json.dumps(_at_patch(f"/objects/{object_slug}/records/{record_id}", {"data": {"values": values}}), indent=2)
+
+@mcp.tool()
+def attio_overwrite_record(object_slug: str, record_id: str, values: dict) -> str:
+    """[Attio] Overwrite attribute values on a record (PUT — replaces multi-select values entirely).
+    Use attio_update_record (PATCH) to append to multi-selects instead."""
+    return json.dumps(_at_put(f"/objects/{object_slug}/records/{record_id}", {"data": {"values": values}}), indent=2)
+
+@mcp.tool()
+def attio_upsert_record(object_slug: str, matching_attribute: str, values: dict) -> str:
+    """[Attio] Create or update a record matched by a unique attribute.
+    matching_attribute: e.g. 'email_addresses' for people, 'domains' for companies.
+    values: same format as attio_create_record values."""
+    return json.dumps(_at_put(f"/objects/{object_slug}/records", {
+        "data": {"matching_attribute": matching_attribute, "values": values}
+    }), indent=2)
+
+@mcp.tool()
+def attio_delete_record(object_slug: str, record_id: str) -> str:
+    """[Attio] Permanently delete a record."""
+    return json.dumps(_at_delete(f"/objects/{object_slug}/records/{record_id}"), indent=2)
+
+@mcp.tool()
+def attio_get_record_list_entries(object_slug: str, record_id: str) -> str:
+    """[Attio] Get all list memberships (entries) for a specific record.
+    Useful for finding which lists a person or company belongs to."""
+    return json.dumps(_at_get(f"/objects/{object_slug}/records/{record_id}/entries"), indent=2)
+
+
+# ── Attribute values ──────────────────────────────────────────────────────────
+
+@mcp.tool()
+def attio_get_attribute_values(object_slug: str, record_id: str, attribute_slug: str) -> str:
+    """[Attio] Get all values for a specific attribute on a record.
+    attribute_slug: e.g. 'email_addresses', 'phone_numbers', 'name'."""
+    return json.dumps(_at_get(
+        f"/objects/{object_slug}/records/{record_id}/attributes/{attribute_slug}/values"
+    ), indent=2)
+
+@mcp.tool()
+def attio_set_attribute_values(object_slug: str, record_id: str, attribute_slug: str, values: list) -> str:
+    """[Attio] Replace all values for a specific attribute on a record.
+    values: array of value objects, e.g. [{"email_address": "new@example.com"}] for email."""
+    return json.dumps(_at_put(
+        f"/objects/{object_slug}/records/{record_id}/attributes/{attribute_slug}/values",
+        {"data": values}
+    ), indent=2)
+
+@mcp.tool()
+def attio_delete_attribute_value(object_slug: str, record_id: str, attribute_slug: str, value_id: str) -> str:
+    """[Attio] Delete a specific value instance for an attribute on a record.
+    value_id: the value UUID returned in attribute value listings."""
+    return json.dumps(_at_delete(
+        f"/objects/{object_slug}/records/{record_id}/attributes/{attribute_slug}/values/{value_id}"
+    ), indent=2)
+
+
+# ── Convenience: people & companies ──────────────────────────────────────────
+
+@mcp.tool()
+def attio_search_people(query: str, limit: int = 20) -> str:
+    """[Attio] Search Attio people records by name (partial match)."""
+    try:
+        return json.dumps(_at_post("/objects/people/records/query", {
+            "filter": {"name": {"$contains": query}}, "limit": limit, "offset": 0,
+        }), indent=2)
+    except httpx.HTTPStatusError:
+        return json.dumps(_at_post("/objects/people/records/query", {"limit": limit, "offset": 0}), indent=2)
+
+@mcp.tool()
+def attio_search_companies(query: str, limit: int = 20) -> str:
+    """[Attio] Search Attio company records by name (partial match)."""
+    try:
+        return json.dumps(_at_post("/objects/companies/records/query", {
+            "filter": {"name": {"$contains": query}}, "limit": limit, "offset": 0,
+        }), indent=2)
+    except httpx.HTTPStatusError:
+        return json.dumps(_at_post("/objects/companies/records/query", {"limit": limit, "offset": 0}), indent=2)
+
+@mcp.tool()
+def attio_find_person_by_email(email: str) -> str:
+    """[Attio] Look up an Attio person record by exact email address."""
+    return json.dumps(_at_post("/objects/people/records/query", {
+        "filter": {"email_addresses": {"email_address": {"$eq": email}}},
+        "limit": 5, "offset": 0,
+    }), indent=2)
+
+@mcp.tool()
+def attio_find_company_by_domain(domain: str) -> str:
+    """[Attio] Look up an Attio company record by website domain (e.g. 'acme.com')."""
+    return json.dumps(_at_post("/objects/companies/records/query", {
+        "filter": {"domains": {"domain": {"$eq": domain}}},
+        "limit": 5, "offset": 0,
+    }), indent=2)
+
+@mcp.tool()
+def attio_create_person(
+    first_name: str,
+    last_name: str,
+    email: Optional[str] = None,
+    phone: Optional[str] = None,
+    company_id: Optional[str] = None,
+    job_title: Optional[str] = None,
+    linkedin_url: Optional[str] = None,
+) -> str:
+    """[Attio] Create a person record in Attio with common fields."""
+    values: dict[str, Any] = {
+        "name": [{"first_name": first_name, "last_name": last_name, "full_name": f"{first_name} {last_name}"}],
+    }
+    if email: values["email_addresses"] = [{"email_address": email}]
+    if phone: values["phone_numbers"] = [{"phone_number": phone}]
+    if company_id: values["company"] = [{"target_object": "companies", "target_record_id": company_id}]
+    if job_title: values["job_title"] = [{"value": job_title}]
+    if linkedin_url: values["linkedin"] = [{"value": linkedin_url}]
+    return json.dumps(_at_post("/objects/people/records", {"data": {"values": values}}), indent=2)
+
+@mcp.tool()
+def attio_create_company(
+    name: str,
+    domain: Optional[str] = None,
+    description: Optional[str] = None,
+    linkedin_url: Optional[str] = None,
+) -> str:
+    """[Attio] Create a company record in Attio with common fields."""
+    values: dict[str, Any] = {"name": [{"value": name}]}
+    if domain: values["domains"] = [{"domain": domain}]
+    if description: values["description"] = [{"value": description}]
+    if linkedin_url: values["linkedin"] = [{"value": linkedin_url}]
+    return json.dumps(_at_post("/objects/companies/records", {"data": {"values": values}}), indent=2)
+
+@mcp.tool()
+def attio_list_deals(limit: int = 20, offset: int = 0) -> str:
+    """[Attio] List deal records in Attio."""
+    return json.dumps(_at_post("/objects/deals/records/query", {"limit": limit, "offset": offset}), indent=2)
+
+
+# ── Notes ──────────────────────────────────────────────────────────────────────
+
+@mcp.tool()
+def attio_list_notes(
+    record_id: Optional[str] = None,
+    object_slug: Optional[str] = None,
+    limit: int = 20,
+    offset: int = 0,
+) -> str:
+    """[Attio] List notes, optionally filtered to a specific record.
+    Provide both record_id and object_slug to filter (e.g. record_id=uuid, object_slug='people')."""
+    params: dict[str, Any] = {"limit": limit, "offset": offset}
+    if record_id and object_slug:
+        params["parent_object"] = object_slug
+        params["parent_record_id"] = record_id
+    return json.dumps(_at_get("/notes", params), indent=2)
+
+@mcp.tool()
+def attio_get_note(note_id: str) -> str:
+    """[Attio] Get a specific note by ID (UUID)."""
+    return json.dumps(_at_get(f"/notes/{note_id}"), indent=2)
+
+@mcp.tool()
+def attio_create_note(
+    object_slug: str,
+    record_id: str,
+    title: str,
+    content: str,
+    format: str = "plaintext",
+    created_at: Optional[str] = None,
+) -> str:
+    """[Attio] Create a note on a record.
+    object_slug: e.g. 'people', 'companies'. format: 'plaintext' or 'markdown'.
+    created_at: ISO 8601 timestamp (defaults to now)."""
+    body: dict[str, Any] = {"data": {
+        "parent_object": object_slug, "parent_record_id": record_id,
+        "title": title, "content": content, "format": format,
+    }}
+    if created_at: body["data"]["created_at"] = created_at
+    return json.dumps(_at_post("/notes", body), indent=2)
+
+@mcp.tool()
+def attio_update_note(note_id: str, title: Optional[str] = None, content: Optional[str] = None) -> str:
+    """[Attio] Update a note's title or content."""
+    data: dict[str, Any] = {}
+    if title is not None: data["title"] = title
+    if content is not None: data["content"] = content
+    return json.dumps(_at_patch(f"/notes/{note_id}", {"data": data}), indent=2)
+
+@mcp.tool()
+def attio_delete_note(note_id: str) -> str:
+    """[Attio] Delete a note by ID."""
+    return json.dumps(_at_delete(f"/notes/{note_id}"), indent=2)
+
+
+# ── Tasks ──────────────────────────────────────────────────────────────────────
+
+@mcp.tool()
+def attio_list_tasks(
+    linked_record_id: Optional[str] = None,
+    linked_object_slug: Optional[str] = None,
+    is_completed: Optional[bool] = None,
+    limit: int = 20,
+    offset: int = 0,
+) -> str:
+    """[Attio] List Attio tasks, optionally filtered by linked record or completion status."""
+    params: dict[str, Any] = {"limit": limit, "offset": offset}
+    if linked_record_id and linked_object_slug:
+        params["linked_object"] = linked_object_slug
+        params["linked_record_id"] = linked_record_id
+    if is_completed is not None:
+        params["is_completed"] = str(is_completed).lower()
+    return json.dumps(_at_get("/tasks", params), indent=2)
+
+@mcp.tool()
+def attio_get_task(task_id: str) -> str:
+    """[Attio] Get a specific Attio task by ID."""
+    return json.dumps(_at_get(f"/tasks/{task_id}"), indent=2)
+
+@mcp.tool()
+def attio_create_task(
+    content: str,
+    linked_records: Optional[list] = None,
+    assignees: Optional[list] = None,
+    deadline_at: Optional[str] = None,
+    is_completed: bool = False,
+) -> str:
+    """[Attio] Create a new task in Attio.
+    linked_records: [{"target_object": "people", "target_record_id": "<uuid>"}]
+    assignees: [{"referenced_actor_type": "workspace-member", "referenced_actor_id": "<uuid>"}]
+    deadline_at: ISO 8601 timestamp."""
+    return json.dumps(_at_post("/tasks", {"data": {
+        "content": content, "format": "plaintext", "is_completed": is_completed,
+        "deadline_at": deadline_at, "assignees": assignees or [], "linked_records": linked_records or [],
+    }}), indent=2)
+
+@mcp.tool()
+def attio_update_task(
+    task_id: str,
+    content: Optional[str] = None,
+    is_completed: Optional[bool] = None,
+    deadline_at: Optional[str] = None,
+    assignees: Optional[list] = None,
+    linked_records: Optional[list] = None,
+) -> str:
+    """[Attio] Update an existing Attio task."""
+    data: dict[str, Any] = {}
+    if content is not None: data["content"] = content
+    if is_completed is not None: data["is_completed"] = is_completed
+    if deadline_at is not None: data["deadline_at"] = deadline_at
+    if assignees is not None: data["assignees"] = assignees
+    if linked_records is not None: data["linked_records"] = linked_records
+    return json.dumps(_at_patch(f"/tasks/{task_id}", {"data": data}), indent=2)
+
+@mcp.tool()
+def attio_delete_task(task_id: str) -> str:
+    """[Attio] Delete a task from Attio."""
+    return json.dumps(_at_delete(f"/tasks/{task_id}"), indent=2)
+
+
+# ── Lists ──────────────────────────────────────────────────────────────────────
+
+@mcp.tool()
+def attio_list_lists() -> str:
+    """[Attio] List all lists in the Attio workspace."""
+    return json.dumps(_at_get("/lists"), indent=2)
+
+@mcp.tool()
+def attio_get_list(list_id: str) -> str:
+    """[Attio] Get a specific Attio list by ID or slug."""
+    return json.dumps(_at_get(f"/lists/{list_id}"), indent=2)
+
+@mcp.tool()
+def attio_create_list(name: str, object_slug: str) -> str:
+    """[Attio] Create a new list for a given object type.
+    object_slug: the object type records in this list will be, e.g. 'companies', 'people'."""
+    return json.dumps(_at_post("/lists", {"data": {
+        "name": name, "api_slug": name.lower().replace(" ", "_"), "object_singular_noun": object_slug,
+    }}), indent=2)
+
+@mcp.tool()
+def attio_update_list(list_id: str, name: Optional[str] = None) -> str:
+    """[Attio] Update a list's display name."""
+    data: dict[str, Any] = {}
+    if name is not None: data["name"] = name
+    return json.dumps(_at_patch(f"/lists/{list_id}", {"data": data}), indent=2)
+
+@mcp.tool()
+def attio_delete_list(list_id: str) -> str:
+    """[Attio] Delete a list."""
+    return json.dumps(_at_delete(f"/lists/{list_id}"), indent=2)
+
+@mcp.tool()
+def attio_list_list_attributes(list_id: str) -> str:
+    """[Attio] List the attributes (columns) defined on a list."""
+    return json.dumps(_at_get(f"/lists/{list_id}/attributes"), indent=2)
+
+
+# ── List entries ───────────────────────────────────────────────────────────────
+
+@mcp.tool()
+def attio_query_list_entries(
+    list_id: str,
+    filter_by: Optional[dict] = None,
+    sorts: Optional[list] = None,
+    limit: int = 20,
+    offset: int = 0,
+) -> str:
+    """[Attio] Query entries in a list with optional filtering and sorting.
+    Same filter/sort syntax as attio_query_records."""
+    body: dict[str, Any] = {"limit": limit, "offset": offset}
+    if filter_by: body["filter"] = filter_by
+    if sorts: body["sorts"] = sorts
+    return json.dumps(_at_post(f"/lists/{list_id}/entries/query", body), indent=2)
+
+@mcp.tool()
+def attio_get_list_entry(list_id: str, entry_id: str) -> str:
+    """[Attio] Get a specific entry in a list."""
+    return json.dumps(_at_get(f"/lists/{list_id}/entries/{entry_id}"), indent=2)
+
+@mcp.tool()
+def attio_create_list_entry(
+    list_id: str,
+    record_id: str,
+    object_slug: str,
+    entry_values: Optional[dict] = None,
+) -> str:
+    """[Attio] Add a record to a list as a new entry.
+    object_slug: the object type of the record, e.g. 'companies', 'people'.
+    entry_values: optional dict of list-level column values."""
+    data: dict[str, Any] = {"parent_record_id": record_id, "parent_object": object_slug}
+    if entry_values: data["entry_values"] = entry_values
+    return json.dumps(_at_post(f"/lists/{list_id}/entries", {"data": data}), indent=2)
+
+@mcp.tool()
+def attio_upsert_list_entry(
+    list_id: str,
+    record_id: str,
+    object_slug: str,
+    entry_values: Optional[dict] = None,
+) -> str:
+    """[Attio] Add a record to a list, or update its entry if it already exists."""
+    data: dict[str, Any] = {"parent_record_id": record_id, "parent_object": object_slug}
+    if entry_values: data["entry_values"] = entry_values
+    return json.dumps(_at_put(f"/lists/{list_id}/entries", {"data": data}), indent=2)
+
+@mcp.tool()
+def attio_update_list_entry(list_id: str, entry_id: str, entry_values: dict) -> str:
+    """[Attio] Update list-entry attribute values for an entry (PATCH — appends to multi-selects)."""
+    return json.dumps(_at_patch(f"/lists/{list_id}/entries/{entry_id}", {"data": {"entry_values": entry_values}}), indent=2)
+
+@mcp.tool()
+def attio_overwrite_list_entry(list_id: str, entry_id: str, entry_values: dict) -> str:
+    """[Attio] Overwrite all values for a list entry (PUT — replaces multi-select values entirely)."""
+    return json.dumps(_at_put(f"/lists/{list_id}/entries/{entry_id}", {"data": {"entry_values": entry_values}}), indent=2)
+
+@mcp.tool()
+def attio_delete_list_entry(list_id: str, entry_id: str) -> str:
+    """[Attio] Remove an entry from a list."""
+    return json.dumps(_at_delete(f"/lists/{list_id}/entries/{entry_id}"), indent=2)
+
+@mcp.tool()
+def attio_get_list_entry_attribute_values(list_id: str, entry_id: str, attribute_slug: str) -> str:
+    """[Attio] Get values for a specific attribute on a list entry."""
+    return json.dumps(_at_get(
+        f"/lists/{list_id}/entries/{entry_id}/attributes/{attribute_slug}/values"
+    ), indent=2)
+
+
+# ── Comments & threads ────────────────────────────────────────────────────────
+
+@mcp.tool()
+def attio_list_threads_for_record(object_slug: str, record_id: str, limit: int = 20) -> str:
+    """[Attio] List all comment threads on a specific Attio record."""
+    return json.dumps(_at_get("/threads", {
+        "object": object_slug, "record_id": record_id, "limit": min(limit, 50),
+    }), indent=2)
+
+@mcp.tool()
+def attio_list_threads_for_entry(list_id: str, entry_id: str, limit: int = 20) -> str:
+    """[Attio] List all comment threads on a specific list entry."""
+    return json.dumps(_at_get("/threads", {
+        "list": list_id, "entry_id": entry_id, "limit": min(limit, 50),
+    }), indent=2)
+
+@mcp.tool()
+def attio_get_thread(thread_id: str) -> str:
+    """[Attio] Get a comment thread with all its comments."""
+    return json.dumps(_at_get(f"/threads/{thread_id}"), indent=2)
+
+@mcp.tool()
+def attio_get_comment(comment_id: str) -> str:
+    """[Attio] Get a single Attio comment by ID."""
+    return json.dumps(_at_get(f"/comments/{comment_id}"), indent=2)
+
+@mcp.tool()
+def attio_create_comment(
+    object_slug: str,
+    record_id: str,
+    content: str,
+    thread_id: Optional[str] = None,
+) -> str:
+    """[Attio] Create a comment on a record. Omit thread_id to start a new thread;
+    provide thread_id to reply to an existing thread."""
+    body: dict[str, Any] = {"data": {
+        "record_id": record_id, "record_object": object_slug,
+        "content": [{"type": "text", "text": content}],
+    }}
+    if thread_id: body["data"]["thread_id"] = thread_id
+    return json.dumps(_at_post("/comments", body), indent=2)
+
+@mcp.tool()
+def attio_delete_comment(comment_id: str) -> str:
+    """[Attio] Delete a comment. If it's the first in a thread, the entire thread is deleted."""
+    return json.dumps(_at_delete(f"/comments/{comment_id}"), indent=2)
+
+
+# ── Webhooks ──────────────────────────────────────────────────────────────────
+
+@mcp.tool()
+def attio_list_webhooks() -> str:
+    """[Attio] List all webhooks configured in the Attio workspace."""
+    return json.dumps(_at_get("/webhooks"), indent=2)
+
+@mcp.tool()
+def attio_get_webhook(webhook_id: str) -> str:
+    """[Attio] Get a specific webhook by ID."""
+    return json.dumps(_at_get(f"/webhooks/{webhook_id}"), indent=2)
+
+@mcp.tool()
+def attio_create_webhook(target_url: str, subscriptions: list) -> str:
+    """[Attio] Create a new webhook.
+    target_url: HTTPS URL Attio will POST events to.
+    subscriptions: [{"event_type": "record.created", "object_slug": "people"}, ...]
+    Event types: record.created/updated/deleted, note.created/deleted,
+    task.created/completed/deleted, attribute-value.created/deleted."""
+    return json.dumps(_at_post("/webhooks", {"data": {
+        "target_url": target_url, "subscriptions": subscriptions,
+    }}), indent=2)
+
+@mcp.tool()
+def attio_update_webhook(
+    webhook_id: str,
+    target_url: Optional[str] = None,
+    subscriptions: Optional[list] = None,
+) -> str:
+    """[Attio] Update a webhook's URL or subscription list (replaces all existing subscriptions)."""
+    data: dict[str, Any] = {}
+    if target_url is not None: data["target_url"] = target_url
+    if subscriptions is not None: data["subscriptions"] = subscriptions
+    return json.dumps(_at_patch(f"/webhooks/{webhook_id}", {"data": data}), indent=2)
+
+@mcp.tool()
+def attio_delete_webhook(webhook_id: str) -> str:
+    """[Attio] Delete a webhook."""
+    return json.dumps(_at_delete(f"/webhooks/{webhook_id}"), indent=2)
+
+
+# ── SQL queries ────────────────────────────────────────────────────────────────
+
+@mcp.tool()
+def attio_run_sql(query: str) -> str:
+    """[Attio] Execute a read-only SQL SELECT query against your Attio workspace data.
+    Extremely powerful — join objects, filter by any attribute, aggregate, alias columns.
+    Field names use the format `object.attribute_slug`. Use attio_list_attributes() to find slugs.
+    Examples:
+      SELECT people.record_id, people.name FROM people LIMIT 10
+      SELECT companies.record_id, companies.name FROM companies LIMIT 10
+      SELECT tasks.task_id, tasks.content_plaintext, tasks.is_completed FROM tasks WHERE tasks.is_completed = false LIMIT 20"""
+    return json.dumps(_at_post("/sql", {"sql": query}), indent=2)
+
+
+# ── Meetings ──────────────────────────────────────────────────────────────────
+
+@mcp.tool()
+def attio_list_meetings(
+    limit: int = 20,
+    offset: int = 0,
+    record_id: Optional[str] = None,
+    object_slug: Optional[str] = None,
+) -> str:
+    """[Attio] List meetings recorded in Attio (Beta). Filter by linked record optionally."""
+    params: dict[str, Any] = {"limit": limit, "offset": offset}
+    if record_id and object_slug:
+        params["record_id"] = record_id
+        params["object"] = object_slug
+    return json.dumps(_at_get("/meetings", params), indent=2)
+
+@mcp.tool()
+def attio_get_meeting(meeting_id: str) -> str:
+    """[Attio] Get a specific meeting by ID."""
+    return json.dumps(_at_get(f"/meetings/{meeting_id}"), indent=2)
+
+@mcp.tool()
+def attio_list_call_recordings(meeting_id: str) -> str:
+    """[Attio] List call recordings for a meeting."""
+    return json.dumps(_at_get(f"/meetings/{meeting_id}/call_recordings"), indent=2)
+
+@mcp.tool()
+def attio_get_call_recording(meeting_id: str, recording_id: str) -> str:
+    """[Attio] Get a specific call recording from a meeting."""
+    return json.dumps(_at_get(f"/meetings/{meeting_id}/call_recordings/{recording_id}"), indent=2)
+
+@mcp.tool()
+def attio_get_call_transcript(
+    meeting_id: str,
+    recording_id: str,
+    limit: int = 50,
+    cursor: Optional[str] = None,
+) -> str:
+    """[Attio] Get the transcript for a call recording (cursor-paginated segments)."""
+    params: dict[str, Any] = {"limit": limit}
+    if cursor: params["cursor"] = cursor
+    return json.dumps(_at_get(
+        f"/meetings/{meeting_id}/call_recordings/{recording_id}/transcript", params
+    ), indent=2)
+
+
+# ── Object & attribute schema management ─────────────────────────────────────
+
+@mcp.tool()
+def attio_create_object(api_slug: str, singular_noun: str, plural_noun: str) -> str:
+    """[Attio] Create a custom object type in the workspace.
+    api_slug: lowercase with underscores, e.g. 'vendors'.
+    singular_noun: 'Vendor'. plural_noun: 'Vendors'."""
+    return json.dumps(_at_post("/objects", {"data": {
+        "api_slug": api_slug, "singular_noun": singular_noun, "plural_noun": plural_noun,
+    }}), indent=2)
+
+@mcp.tool()
+def attio_update_object(object_slug: str, singular_noun: Optional[str] = None, plural_noun: Optional[str] = None) -> str:
+    """[Attio] Update a custom object's display name."""
+    data: dict[str, Any] = {}
+    if singular_noun is not None: data["singular_noun"] = singular_noun
+    if plural_noun is not None: data["plural_noun"] = plural_noun
+    return json.dumps(_at_patch(f"/objects/{object_slug}", {"data": data}), indent=2)
+
+@mcp.tool()
+def attio_create_attribute(
+    object_slug: str,
+    api_slug: str,
+    title: str,
+    attribute_type: str,
+    is_required: bool = False,
+    is_unique: bool = False,
+    config: Optional[dict] = None,
+) -> str:
+    """[Attio] Create a new attribute on an object type.
+    attribute_type: text, number, checkbox, currency, date, timestamp, location,
+    rating, status, select, multi_select, record_reference, actor_reference,
+    email_address, phone_number, domain, interaction.
+    config examples: {"currency_code": "USD"} or {"relationship": {"target_object": "companies"}}"""
+    data: dict[str, Any] = {
+        "api_slug": api_slug, "title": title, "type": attribute_type,
+        "is_required": is_required, "is_unique": is_unique,
+    }
+    if config: data.update(config)
+    return json.dumps(_at_post(f"/objects/{object_slug}/attributes", {"data": data}), indent=2)
+
+@mcp.tool()
+def attio_update_attribute(
+    object_slug: str,
+    attribute_slug: str,
+    title: Optional[str] = None,
+    is_required: Optional[bool] = None,
+) -> str:
+    """[Attio] Update an attribute's title or required flag."""
+    data: dict[str, Any] = {}
+    if title is not None: data["title"] = title
+    if is_required is not None: data["is_required"] = is_required
+    return json.dumps(_at_patch(f"/objects/{object_slug}/attributes/{attribute_slug}", {"data": data}), indent=2)
+
+@mcp.tool()
+def attio_create_select_option(object_slug: str, attribute_slug: str, title: str, color: Optional[str] = None) -> str:
+    """[Attio] Add a new option to a select or multi-select attribute.
+    color: 'red', 'green', 'blue', 'yellow', 'purple', etc."""
+    data: dict[str, Any] = {"title": title}
+    if color: data["color"] = color
+    return json.dumps(_at_post(
+        f"/objects/{object_slug}/attributes/{attribute_slug}/options", {"data": data}
+    ), indent=2)
+
+@mcp.tool()
+def attio_create_status(object_slug: str, attribute_slug: str, title: str, color: Optional[str] = None) -> str:
+    """[Attio] Add a new status option to a status-type attribute."""
+    data: dict[str, Any] = {"title": title}
+    if color: data["color"] = color
+    return json.dumps(_at_post(
+        f"/objects/{object_slug}/attributes/{attribute_slug}/statuses", {"data": data}
+    ), indent=2)
+
+
+# ===========================================================================
 # App entrypoint
-# ---------------------------------------------------------------------------
+# ===========================================================================
 
 app = mcp.streamable_http_app()
 
