@@ -1704,6 +1704,89 @@ def august_get_query_files(query_id: str) -> str:
     return json.dumps(_aug_get(f"/api/v1/queries/{query_id}/files"), indent=2)
 
 
+# ── Workflows ───────────────────────────────────────────────────────────────
+
+@mcp.tool()
+def august_create_workflow(
+    prompt: str,
+    project_id: Optional[str] = None,
+    idempotency_key: Optional[str] = None
+) -> str:
+    """[August Platform] Create a saved workflow from a natural-language prompt.
+    August generates a workflow draft from the prompt and saves it, using the
+    same creation flow as the platform chat interface.
+
+    Args:
+        prompt: Natural-language description of the workflow (max 20,000 chars).
+                Example: "Review all uploaded contracts for liability clauses and
+                flag any that exceed $1M exposure"
+        project_id: Optional project to scope the workflow to.
+        idempotency_key: Optional dedupe key (max 256 chars). Reusing the same
+                         key returns the first workflow instead of creating a duplicate.
+
+    Returns workflow_id, name, created status, and any trigger_warnings."""
+    body: dict[str, Any] = {"prompt": prompt}
+    if project_id:
+        body["project_id"] = project_id
+    if idempotency_key:
+        body["idempotency_key"] = idempotency_key
+    return json.dumps(_aug_post("/api/v1/workflows", body), indent=2)
+
+
+# ── Pre-Share Policies ──────────────────────────────────────────────────────
+
+@mcp.tool()
+def august_create_pre_share_policy(
+    name: str,
+    condition_type: str,
+    condition_value: str,
+    artifacts: List[dict],
+    delivery_mode: str = "share",
+    permission_level: str = "viewer",
+    backfill_existing_users: bool = False,
+    is_enabled: bool = True,
+    destination_type: Optional[str] = None,
+    target_project_id: Optional[str] = None
+) -> str:
+    """[August Platform] Create a pre-share policy for mass-sharing projects, folders, or workflows.
+    Policies automatically share content with users matching a condition.
+
+    Args:
+        name: Policy name (max 200 chars).
+        condition_type: Who to share with. One of:
+            - 'organization_membership': all members of an org
+            - 'email_exact': a specific email address
+            - 'email_domain': all users with emails at a domain (e.g. 'acme.com')
+        condition_value: The org ID, email, or domain to match against.
+        artifacts: List of items to share. Each dict needs:
+            - 'artifact_type': one of 'project', 'folder', 'workflow'
+            - 'artifact_id': the ID of the artifact
+            Example: [{"artifact_type": "workflow", "artifact_id": "abc-123"}]
+        delivery_mode: 'share' (give access to original) or 'duplicate' (copy for each user). Default: 'share'.
+        permission_level: 'owner', 'editor', or 'viewer'. Default: 'viewer'.
+        backfill_existing_users: If True, immediately apply to all existing matching users. Default: False.
+        is_enabled: Whether the policy is active. Default: True.
+        destination_type: 'personal' or 'project'. Where shared content lands.
+        target_project_id: If destination_type is 'project', the target project ID.
+
+    Returns policy details including applied_count, pending_count, and matched_users_count."""
+    body: dict[str, Any] = {
+        "name": name,
+        "condition_type": condition_type,
+        "condition_value": condition_value,
+        "artifacts": artifacts,
+        "delivery_mode": delivery_mode,
+        "permission_level": permission_level,
+        "backfill_existing_users": backfill_existing_users,
+        "is_enabled": is_enabled,
+    }
+    if destination_type:
+        body["destination_type"] = destination_type
+    if target_project_id:
+        body["target_project_id"] = target_project_id
+    return json.dumps(_aug_post("/api/v1/pre-share-policies", body), indent=2)
+
+
 # ===========================================================================
 # App entrypoint
 # ===========================================================================
