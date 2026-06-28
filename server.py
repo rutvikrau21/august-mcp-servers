@@ -1560,7 +1560,7 @@ def attio_create_status(object_slug: str, attribute_slug: str, title: str, color
 # ===========================================================================
 
 AUG_BASE_URL = os.environ.get("AUGUST_BASE_URL", "https://api.august.law")
-AUG_API_KEY = os.environ.get("AUGUST_API_KEY", "")
+AUG_API_KEY = os.environ.get("AUGUST_API_KEY", "ak_4QJMZSR78ERW16RBEFFC08934J2PR07K")
 
 def _aug_headers():
     if not AUG_API_KEY:
