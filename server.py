@@ -1555,12 +1555,28 @@ def attio_create_status(object_slug: str, attribute_slug: str, title: str, color
 
 # ===========================================================================
 # AUGUST PLATFORM
-# Base URL: https://api.august.law  |  Bearer token auth
-# Legal document intelligence, Genius Mode queries, project & folder management
+# Base URL: https://app.august.law/api/v1  |  Bearer token auth (ak_...)
+# Legal document intelligence, Genius Mode chats, project & folder management.
+#
+# Migrated 2026-07 to the new public API surface. What changed vs. the old API:
+#   • Host moved:  api.august.law  ->  app.august.law   (paths stay /api/v1/*)
+#   • Genius Mode "queries" are now "chats" + asynchronous "questions":
+#       POST /chats                              submit a prompt -> {chat_id, question_id}
+#       GET  /chats/questions/{id}/status|result|files
+#       POST /chats/questions/{id}/cancel
+#     (tool names below are unchanged; they now take a question_id instead of a query_id)
+#   • File downloads return a single short-lived signed URL (GET, one per doc)
+#   • Folder listing & global search use query params + cursor pagination
+#   • Request bodies / several query params are camelCase
+#   • Translation (/translate) is NOT part of the public v1 API — tools removed.
+# Full spec: https://app.august.law/api/v1/openapi.json
 # ===========================================================================
 
-AUG_BASE_URL = os.environ.get("AUGUST_BASE_URL", "https://api.august.law")
+AUG_BASE_URL = os.environ.get("AUGUST_BASE_URL", "https://app.august.law")
 AUG_API_KEY = os.environ.get("AUGUST_API_KEY", "ak_4QJMZSR78ERW16RBEFFC08934J2PR07K")
+
+# Nil UUID — pass as chat_id to POST /chats to start a brand-new chat thread.
+AUG_NIL_UUID = "00000000-0000-0000-0000-000000000000"
 
 def _aug_headers():
     if not AUG_API_KEY:
@@ -1579,8 +1595,8 @@ def _aug_patch(path, body=None):
     r = httpx.patch(f"{AUG_BASE_URL}{path}", headers=_aug_headers(), json=body or {}, timeout=60)
     r.raise_for_status(); return r.json() if r.content else {"status": "ok"}
 
-def _aug_delete(path):
-    r = httpx.delete(f"{AUG_BASE_URL}{path}", headers=_aug_headers(), timeout=60)
+def _aug_delete(path, params=None):
+    r = httpx.delete(f"{AUG_BASE_URL}{path}", headers=_aug_headers(), params=params, timeout=60)
     r.raise_for_status(); return r.json() if r.content else {"status": "deleted"}
 
 
@@ -1597,7 +1613,7 @@ def august_list_projects() -> str:
 @mcp.tool()
 def august_list_project_members(project_id: str) -> str:
     """[August Platform] List all members of a specific project.
-    Returns each member's id, name, email, and role within the project.
+    Returns each member's id, name, email, and permission level within the project.
     Useful for understanding who has access and their permissions."""
     return json.dumps(_aug_get(f"/api/v1/projects/{project_id}/members"), indent=2)
 
@@ -1605,33 +1621,78 @@ def august_list_project_members(project_id: str) -> str:
 # ── Search ──────────────────────────────────────────────────────────────────
 
 @mcp.tool()
-def august_global_search(q: str, offset: int = 0, limit: int = 50) -> str:
-    """[August Platform] Full-text search across ALL accessible projects.
-    Searches file names, document content, and metadata globally.
-    Returns matching files, folders, and documents with relevance scores and snippets.
-    Use this when you don't know which project contains the information."""
-    return json.dumps(_aug_get("/api/v1/search", {"q": q, "offset": offset, "limit": limit}), indent=2)
+def august_global_search(
+    query: str,
+    project_id: Optional[str] = None,
+    scope: str = "all",
+    parent_folder_id: Optional[str] = None,
+) -> str:
+    """[August Platform] Name search across the accessible folder tree (files and folders).
+    This is name-based search — for semantic/full-text passage search use august_search_content.
+
+    Args:
+        query: The search string to match against file and folder names.
+        project_id: Scope to a specific project. Omit to search your personal workspace.
+        scope: 'folders', 'files', or 'all' (default).
+        parent_folder_id: Restrict the search to a specific subtree.
+
+    Returns a flat array of matching folder/file hits."""
+    params: dict[str, Any] = {"query": query, "scope": scope}
+    if project_id:
+        params["projectId"] = project_id
+    if parent_folder_id:
+        params["parentFolderId"] = parent_folder_id
+    return json.dumps(_aug_get("/api/v1/search", params), indent=2)
 
 @mcp.tool()
-def august_project_search(project_id: str, q: str, offset: int = 0, limit: int = 50) -> str:
-    """[August Platform] Full-text search within a specific project's documents and files.
-    More targeted than global search — scoped to a single project.
-    Returns matching items with relevance scores, snippets, and folder paths."""
-    return json.dumps(_aug_get(f"/api/v1/projects/{project_id}/search", {"q": q, "offset": offset, "limit": limit}), indent=2)
+def august_project_search(project_id: str, query: str, scope: str = "all") -> str:
+    """[August Platform] Name search scoped to a single project's folders and files.
+    Convenience wrapper over the global /search endpoint with projectId set.
+    scope: 'folders', 'files', or 'all' (default)."""
+    params: dict[str, Any] = {"query": query, "projectId": project_id, "scope": scope}
+    return json.dumps(_aug_get("/api/v1/search", params), indent=2)
 
 
 # ── Folders ─────────────────────────────────────────────────────────────────
 
 @mcp.tool()
-def august_get_folder_contents(folder_id: str, offset: int = 0, limit: int = 100) -> str:
-    """[August Platform] Get the contents (files and subfolders) of a specific folder.
-    Returns a paginated list of items with their names, types (file/folder),
-    sizes, and timestamps. Use this to browse the folder hierarchy."""
-    return json.dumps(_aug_get(f"/api/v1/folders/{folder_id}/contents", {"offset": offset, "limit": limit}), indent=2)
+def august_get_folder_contents(
+    folder_id: Optional[str] = None,
+    project_id: Optional[str] = None,
+    cursor: Optional[str] = None,
+    limit: int = 100,
+    sort_by: str = "name",
+    sort_desc: bool = False,
+    include_files: bool = True,
+) -> str:
+    """[August Platform] List a folder's contents: subfolders (alphabetical) then files (cursor-paginated).
+    Omit folder_id to list the personal/project root; pass project_id to list a project's root.
+
+    Cursor pagination: the response includes a cursor for the next page — pass it back
+    as `cursor` to fetch more files.
+
+    Args:
+        folder_id: Folder to list. Omit for the root.
+        project_id: Scope to a project's root when folder_id is omitted.
+        cursor: Opaque pagination cursor from the previous page.
+        limit: Max files per page (default 100).
+        sort_by: 'name', 'created_at', 'updated_at', 'file_size', or 'file_type'.
+        sort_desc: Sort descending when True.
+        include_files: Set False to return only subfolders."""
+    params: dict[str, Any] = {
+        "limit": limit, "sortBy": sort_by, "sortDesc": sort_desc, "includeFiles": include_files,
+    }
+    if folder_id:
+        params["parentFolderId"] = folder_id
+    if project_id:
+        params["projectId"] = project_id
+    if cursor:
+        params["cursor"] = cursor
+    return json.dumps(_aug_get("/api/v1/folders/contents", params), indent=2)
 
 @mcp.tool()
 def august_get_folder_tree(folder_id: str) -> str:
-    """[August Platform] Get the full recursive folder tree starting from a specific folder.
+    """[August Platform] Get the full recursive folder subtree rooted at a specific folder.
     Returns the complete hierarchy of subfolders and files as a nested tree structure.
     Useful for understanding the full organizational structure of a project's documents."""
     return json.dumps(_aug_get(f"/api/v1/folders/{folder_id}/tree"), indent=2)
@@ -1640,76 +1701,284 @@ def august_get_folder_tree(folder_id: str) -> str:
 # ── Files ───────────────────────────────────────────────────────────────────
 
 @mcp.tool()
-def august_get_file_download_urls(doc_ids: List[str], use_pdf: bool = False, ttl: int = 3600, project_id: Optional[str] = None) -> str:
-    """[August Platform] Generate presigned download URLs for one or more files.
-    Pass a list of document IDs to get time-limited download links.
-    Set use_pdf=True to convert documents to PDF format on download.
-    TTL controls how long the URLs remain valid (default 3600 seconds = 1 hour).
-    Returns URLs with expiration timestamps and original filenames."""
-    body: dict[str, Any] = {"doc_ids": doc_ids, "use_pdf": use_pdf, "ttl": ttl}
+def august_get_file_download_urls(doc_ids: List[str], use_pdf: bool = False, ttl: int = 3600) -> str:
+    """[August Platform] Get short-lived signed download URLs for one or more documents.
+    The new API returns a single signed URL per document (GET /files/{docId}/download-url);
+    this tool fetches one per doc_id and returns them together.
+
+    Args:
+        doc_ids: List of document IDs to generate download links for.
+        use_pdf: Set True to download a PDF rendering of each document.
+        ttl: Seconds the signed URL stays valid (default 3600 = 1 hour).
+
+    Returns a list of {doc_id, url} objects (or {doc_id, error} for any that fail)."""
+    downloads: list = []
+    for doc_id in doc_ids:
+        try:
+            r = _aug_get(f"/api/v1/files/{doc_id}/download-url", {"usePdf": use_pdf, "ttl": ttl})
+            downloads.append({"doc_id": doc_id, "url": r.get("url")})
+        except httpx.HTTPStatusError as e:
+            downloads.append({"doc_id": doc_id, "error": f"{e.response.status_code} {e.response.text[:200]}"})
+    return json.dumps({"downloads": downloads}, indent=2)
+
+@mcp.tool()
+def august_get_file_content(
+    doc_id: str,
+    start_chunk_index: Optional[int] = None,
+    limit: Optional[int] = None,
+    project_id: Optional[str] = None,
+) -> str:
+    """[August Platform] Retrieve the parsed text content of a document by its document ID.
+    Returns the extracted text as ordered chunks. Paginate with start_chunk_index/limit;
+    re-call with start_chunk_index = endChunkIndex + 1 while the response's hasMore is true.
+
+    Args:
+        doc_id: Unique identifier of the document whose content to retrieve.
+        start_chunk_index: Zero-based index of the first text chunk to return (default 0).
+        limit: Maximum number of text chunks to return (default 100).
+        project_id: Optional project scope to restrict access.
+
+    Returns document text content in chunks with chunk indices and a hasMore flag."""
+    params: dict[str, Any] = {}
+    if start_chunk_index is not None:
+        params["startChunkIndex"] = start_chunk_index
+    if limit is not None:
+        params["limit"] = limit
     if project_id:
-        body["project_id"] = project_id
-    return json.dumps(_aug_post("/api/v1/files/download", body), indent=2)
+        params["projectId"] = project_id
+    return json.dumps(_aug_get(f"/api/v1/files/{doc_id}/content", params or None), indent=2)
 
 
-# ── Genius Mode Queries ─────────────────────────────────────────────────────
+# ── Genius Mode (chats & async questions) ───────────────────────────────────
 
 @mcp.tool()
 def august_submit_query(
     query: str,
+    chat_id: Optional[str] = None,
     project_id: Optional[str] = None,
     folder_ids: Optional[List[str]] = None,
     file_ids: Optional[List[str]] = None,
-    mode: str = "research"
+    mode: Optional[List[str]] = None,
+    workflow_name: str = "query",
 ) -> str:
-    """[August Platform] Submit a Genius Mode query for legal research or document analysis.
-    This is August's most powerful capability — it processes natural language questions
-    against your documents using AI.
+    """[August Platform] Submit a Genius Mode query. This starts (or continues) a chat and
+    kicks off an asynchronous question — August's most powerful capability, answering
+    natural-language questions against your documents with AI.
 
-    IMPORTANT: Queries are processed ASYNCHRONOUSLY. This tool returns a query_id
-    immediately. You must then poll with august_get_query_status until status is
-    'completed', then retrieve results with august_get_query_result.
+    ASYNCHRONOUS: this returns immediately with chat_id and question_id. You must then poll
+    august_get_query_status(question_id) until status is 'completed', then retrieve the answer
+    with august_get_query_result(question_id).
 
-    Modes:
-      - 'research': Deep legal research across documents (default)
-      - 'analysis': Structured analysis of specific documents
-      - 'draft': Draft new content based on document context
-      - 'review': Review and annotate documents
+    Args:
+        query: The natural-language question or instruction.
+        chat_id: Omit (or pass the nil UUID) to start a NEW chat thread; pass an existing
+                 chat_id to ask a follow-up within that thread.
+        project_id: Scope the query to a project.
+        folder_ids / file_ids: Scope the query to specific folders/files. Without scope,
+                 it searches across all accessible documents.
+        mode: List of mode strings (default ['auto']). 'auto' lets August pick the best mode.
+        workflow_name: Optional label for the run (default 'query').
 
-    Scope the query by providing project_id, folder_ids, and/or file_ids.
-    Without scope, it searches across all accessible documents."""
-    body: dict[str, Any] = {"query": query, "mode": mode}
+    Returns {status, message, chat_id, question_id}."""
+    body: dict[str, Any] = {
+        "prompt": query,
+        "chat_id": chat_id or AUG_NIL_UUID,
+        "mode": mode or ["auto"],
+        "workflow_name": workflow_name,
+    }
     if project_id:
         body["project_id"] = project_id
     if folder_ids:
         body["folder_ids"] = folder_ids
     if file_ids:
         body["file_ids"] = file_ids
-    return json.dumps(_aug_post("/api/v1/queries", body), indent=2)
+    return json.dumps(_aug_post("/api/v1/chats", body), indent=2)
 
 @mcp.tool()
-def august_get_query_status(query_id: str) -> str:
-    """[August Platform] Poll the processing status of a submitted Genius Mode query.
-    Status values: 'pending', 'processing', 'completed', 'failed'.
-    Also returns a progress indicator (0-1) during processing.
-    Call this repeatedly until status is 'completed' before fetching results."""
-    return json.dumps(_aug_get(f"/api/v1/queries/{query_id}/status"), indent=2)
+def august_get_query_status(question_id: str) -> str:
+    """[August Platform] Poll the processing status of a submitted Genius Mode question.
+    Pass the question_id returned by august_submit_query. Returns the status plus a
+    lightweight step-count progress signal. Call repeatedly until status is 'completed'
+    before fetching results."""
+    return json.dumps(_aug_get(f"/api/v1/chats/questions/{question_id}/status"), indent=2)
 
 @mcp.tool()
-def august_get_query_result(query_id: str) -> str:
-    """[August Platform] Retrieve the completed result of a Genius Mode query.
+def august_get_query_result(question_id: str) -> str:
+    """[August Platform] Retrieve the completed result of a Genius Mode question.
     Only call this after august_get_query_status returns 'completed'.
-    Returns the AI-generated answer, source documents, and citations
-    with references back to specific documents and passages."""
-    return json.dumps(_aug_get(f"/api/v1/queries/{query_id}/result"), indent=2)
+    Returns the AI-generated answer, follow-up questions, and citation ids."""
+    return json.dumps(_aug_get(f"/api/v1/chats/questions/{question_id}/result"), indent=2)
 
 @mcp.tool()
-def august_get_query_files(query_id: str) -> str:
-    """[August Platform] Retrieve files generated by a completed Genius Mode query.
-    Some query modes produce work products (presentations, spreadsheets, reports).
-    This returns the list of generated files with their IDs, names, types, and sizes.
+def august_get_query_files(question_id: str) -> str:
+    """[August Platform] Retrieve work-product files generated by a completed Genius Mode question
+    (genius_outputs — e.g. presentations, spreadsheets, reports).
+    Returns the list of generated files with their IDs, names, types, and sizes.
     Use august_get_file_download_urls with the file IDs to download them."""
-    return json.dumps(_aug_get(f"/api/v1/queries/{query_id}/files"), indent=2)
+    return json.dumps(_aug_get(f"/api/v1/chats/questions/{question_id}/files"), indent=2)
+
+@mcp.tool()
+def august_cancel_query(question_id: str) -> str:
+    """[August Platform] Cancel a running or pending Genius Mode question before it completes.
+    No-op if the question is already in a terminal state. Cancelled questions cannot be
+    resumed — resubmit with august_submit_query if needed.
+
+    Args:
+        question_id: The question_id returned by august_submit_query.
+
+    Returns a cancellation confirmation."""
+    return json.dumps(_aug_post(f"/api/v1/chats/questions/{question_id}/cancel"), indent=2)
+
+
+# ── Chats ───────────────────────────────────────────────────────────────────
+
+@mcp.tool()
+def august_list_chats(
+    limit: int = 20,
+    cursor: Optional[str] = None,
+    project_id: Optional[str] = None,
+    search: Optional[str] = None,
+) -> str:
+    """[August Platform] List chats (Genius Mode sessions) accessible to the authenticated user.
+    Cursor-paginated. Useful for retrieving recent AI research sessions and reviewing past queries.
+
+    Args:
+        limit: Maximum number of chats to return (default 20).
+        cursor: Opaque pagination cursor from the previous page.
+        project_id: Filter to chats within a specific project.
+        search: Free-text filter over chat names.
+
+    Returns a list of chat objects plus a cursor for the next page."""
+    params: dict[str, Any] = {"limit": limit}
+    if cursor:
+        params["cursor"] = cursor
+    if project_id:
+        params["projectId"] = project_id
+    if search:
+        params["search"] = search
+    return json.dumps(_aug_get("/api/v1/chats", params), indent=2)
+
+@mcp.tool()
+def august_get_chat(chat_id: str) -> str:
+    """[August Platform] Get a full chat thread by ID — its messages, questions, and answers.
+    Use this to read back a Genius Mode conversation, including the results of questions
+    submitted with august_submit_query in that chat."""
+    return json.dumps(_aug_get(f"/api/v1/chats/{chat_id}"), indent=2)
+
+@mcp.tool()
+def august_rename_chat(chat_id: str, name: str) -> str:
+    """[August Platform] Rename an existing chat (Genius Mode session) by its ID.
+    Caller must be the chat owner. name: max 255 characters.
+    Returns the updated chat object."""
+    return json.dumps(_aug_patch(f"/api/v1/chats/{chat_id}", {"name": name}), indent=2)
+
+@mcp.tool()
+def august_delete_chat(chat_id: str) -> str:
+    """[August Platform] Permanently delete a chat (Genius Mode session) and all its messages.
+    Caller must be the chat owner. This action is irreversible — use with caution on
+    important legal research sessions. Returns a deletion confirmation."""
+    return json.dumps(_aug_delete(f"/api/v1/chats/{chat_id}"), indent=2)
+
+
+# ── Folders (create / delete) ───────────────────────────────────────────────
+
+@mcp.tool()
+def august_create_folder(
+    name: str,
+    description: Optional[str] = None,
+    parent_id: Optional[str] = None,
+    project_id: Optional[str] = None,
+) -> str:
+    """[August Platform] Create a new folder. Three positioning modes:
+      • subfolder — pass parent_id
+      • project root — pass project_id (and no parent_id)
+      • personal root — pass neither
+    The caller becomes the folder owner.
+
+    Args:
+        name: Display name (max 255 characters).
+        description: Optional description of the folder's purpose.
+        parent_id: ID of an existing folder to nest this folder inside.
+        project_id: Project to anchor the folder to when creating at a project root.
+
+    Returns the created folder object."""
+    body: dict[str, Any] = {"name": name}
+    if description is not None:
+        body["description"] = description
+    if parent_id is not None:
+        body["parentId"] = parent_id
+    if project_id is not None:
+        body["projectId"] = project_id
+    return json.dumps(_aug_post("/api/v1/folders", body), indent=2)
+
+@mcp.tool()
+def august_delete_folder(folder_id: str) -> str:
+    """[August Platform] Soft-delete a folder and its entire subtree (owner-only).
+    WARNING: this recursively removes all sub-folders and documents inside the folder.
+    Review the folder contents with august_get_folder_contents or august_get_folder_tree first.
+    Returns a deletion confirmation."""
+    return json.dumps(_aug_delete("/api/v1/folders", [("folderIds", folder_id)]), indent=2)
+
+
+# ── Projects (create / rename / delete) ─────────────────────────────────────
+
+@mcp.tool()
+def august_create_project(
+    name: str,
+    description: Optional[str] = None,
+    client_num: Optional[str] = None,
+    matter_num: Optional[str] = None,
+    intelligence_prompt: Optional[str] = None,
+    sharing_enabled: bool = False,
+) -> str:
+    """[August Platform] Create a new project for organising legal work.
+    Projects are top-level workspaces grouping related folders, documents, and AI queries —
+    typically one per matter, client engagement, or practice-group initiative.
+    The caller is added as the project owner.
+
+    Args:
+        name: Display name (max 200 characters).
+        description: Optional scope description (max 2000 characters).
+        client_num: Optional client/matter reference number (max 64 chars).
+        matter_num: Optional matter number (max 64 chars).
+        intelligence_prompt: Optional system-level AI instruction (max 10,000 chars) that
+                             biases how August AI operates within this project.
+        sharing_enabled: Whether project-level sharing is enabled (default False).
+
+    Returns the newly created project object."""
+    body: dict[str, Any] = {"name": name, "sharingEnabled": sharing_enabled}
+    if description is not None:
+        body["description"] = description
+    if client_num is not None:
+        body["clientNum"] = client_num
+    if matter_num is not None:
+        body["matterNum"] = matter_num
+    if intelligence_prompt is not None:
+        body["intelligencePrompt"] = intelligence_prompt
+    return json.dumps(_aug_post("/api/v1/projects", body), indent=2)
+
+@mcp.tool()
+def august_rename_project(project_id: str, name: str) -> str:
+    """[August Platform] Rename an existing project by its ID. Caller must be the project owner.
+    name: max 200 characters. Returns the updated project object."""
+    return json.dumps(_aug_patch(f"/api/v1/projects/{project_id}", {"name": name}), indent=2)
+
+@mcp.tool()
+def august_delete_project(project_id: str, confirm: bool = False) -> str:
+    """[August Platform] Permanently delete a project and its resource links.
+    (Chats and folders survive as personal resources.) Destructive and irreversible.
+    You MUST pass confirm=True to actually delete — otherwise the API is a no-op.
+    Verify contents with august_list_projects / august_get_folder_tree first.
+    Returns a deletion confirmation."""
+    return json.dumps(_aug_delete(f"/api/v1/projects/{project_id}", {"confirm": confirm}), indent=2)
+
+@mcp.tool()
+def august_list_project_root_folders(project_id: str) -> str:
+    """[August Platform] List the top-level folders (data sources) a project is anchored to.
+    Caller must be a project member. Use august_get_folder_contents or august_get_folder_tree
+    to explore nested sub-folders.
+    Returns a list of folder objects."""
+    return json.dumps(_aug_get(f"/api/v1/projects/{project_id}/folders"), indent=2)
 
 
 # ── Workflows ───────────────────────────────────────────────────────────────
@@ -1718,26 +1987,27 @@ def august_get_query_files(query_id: str) -> str:
 def august_create_workflow(
     prompt: str,
     project_id: Optional[str] = None,
-    idempotency_key: Optional[str] = None
+    idempotency_key: Optional[str] = None,
 ) -> str:
     """[August Platform] Create a saved workflow from a natural-language prompt.
-    August generates a workflow draft from the prompt and saves it, using the
-    same creation flow as the platform chat interface.
+    August generates a runnable workflow draft from the prompt and saves it.
 
     Args:
         prompt: Natural-language description of the workflow (max 20,000 chars).
                 Example: "Review all uploaded contracts for liability clauses and
-                flag any that exceed $1M exposure"
+                flag any that exceed $1M exposure".
         project_id: Optional project to scope the workflow to.
-        idempotency_key: Optional dedupe key (max 256 chars). Reusing the same
-                         key returns the first workflow instead of creating a duplicate.
+        idempotency_key: Optional dedupe key (max 256 chars). Reusing the same key on a
+                         retry returns the first workflow instead of creating a duplicate.
 
-    Returns workflow_id, name, created status, and any trigger_warnings."""
+    Returns workflow_id, name, created status, and any triggerWarnings.
+    NOTE: idempotency_key only dedupes retries of the same request — it does NOT dedupe
+    across parallel/concurrent creation calls."""
     body: dict[str, Any] = {"prompt": prompt}
     if project_id:
-        body["project_id"] = project_id
+        body["projectId"] = project_id
     if idempotency_key:
-        body["idempotency_key"] = idempotency_key
+        body["idempotencyKey"] = idempotency_key
     return json.dumps(_aug_post("/api/v1/workflows", body), indent=2)
 
 
@@ -1754,286 +2024,81 @@ def august_create_pre_share_policy(
     backfill_existing_users: bool = False,
     is_enabled: bool = True,
     destination_type: Optional[str] = None,
-    target_project_id: Optional[str] = None
+    target_project_id: Optional[str] = None,
 ) -> str:
     """[August Platform] Create a pre-share policy for mass-sharing projects, folders, or workflows.
     Policies automatically share content with users matching a condition.
 
     Args:
-        name: Policy name (max 200 chars).
+        name: Policy name.
         condition_type: Who to share with. One of:
             - 'organization_membership': all members of an org
             - 'email_exact': a specific email address
             - 'email_domain': all users with emails at a domain (e.g. 'acme.com')
         condition_value: The org ID, email, or domain to match against.
-        artifacts: List of items to share. Each dict needs:
-            - 'artifact_type': one of 'project', 'folder', 'workflow'
-            - 'artifact_id': the ID of the artifact
+        artifacts: List of items to share. Each dict needs artifact_type + artifact_id
+            (camelCase artifactType/artifactId also accepted). artifact_type is one of
+            'project', 'folder', 'workflow'.
             Example: [{"artifact_type": "workflow", "artifact_id": "abc-123"}]
-        delivery_mode: 'share' (give access to original) or 'duplicate' (copy for each user). Default: 'share'.
-        permission_level: 'owner', 'editor', or 'viewer'. Default: 'viewer'.
-        backfill_existing_users: If True, immediately apply to all existing matching users. Default: False.
-        is_enabled: Whether the policy is active. Default: True.
-        destination_type: 'personal' or 'project'. Where shared content lands.
+        delivery_mode: 'share' (give access to original) or 'duplicate' (copy per user). Default 'share'.
+        permission_level: 'owner', 'editor', or 'viewer'. Default 'viewer'.
+        backfill_existing_users: If True, immediately apply to all existing matching users. Default False.
+        is_enabled: Whether the policy is active. Default True.
+        destination_type: 'personal' or 'project'. Where shared/duplicated content lands.
         target_project_id: If destination_type is 'project', the target project ID.
 
-    Returns policy details including applied_count, pending_count, and matched_users_count."""
+    Returns the created policy object."""
+    norm_artifacts = [
+        {
+            "artifactId": a.get("artifactId") or a.get("artifact_id"),
+            "artifactType": a.get("artifactType") or a.get("artifact_type"),
+        }
+        for a in artifacts
+    ]
     body: dict[str, Any] = {
         "name": name,
-        "condition_type": condition_type,
-        "condition_value": condition_value,
-        "artifacts": artifacts,
-        "delivery_mode": delivery_mode,
-        "permission_level": permission_level,
-        "backfill_existing_users": backfill_existing_users,
-        "is_enabled": is_enabled,
+        "conditionType": condition_type,
+        "conditionValue": condition_value,
+        "deliveryMode": delivery_mode,
+        "destinationType": destination_type,
+        "targetProjectId": target_project_id,
+        "permissionLevel": permission_level,
+        "isEnabled": is_enabled,
+        "backfillExistingUsers": backfill_existing_users,
+        "artifacts": norm_artifacts,
     }
-    if destination_type:
-        body["destination_type"] = destination_type
-    if target_project_id:
-        body["target_project_id"] = target_project_id
     return json.dumps(_aug_post("/api/v1/pre-share-policies", body), indent=2)
 
-
-# ── Chats ───────────────────────────────────────────────────────────────────
+@mcp.tool()
+def august_list_pre_share_policies() -> str:
+    """[August Platform] List all pre-share policies in the workspace."""
+    return json.dumps(_aug_get("/api/v1/pre-share-policies"), indent=2)
 
 @mcp.tool()
-def august_list_chats(
-    offset: Optional[int] = None,
-    limit: Optional[int] = None
-) -> str:
-    """[August Platform] List all chats (Genius Mode sessions) accessible to the authenticated user.
-    Chats are the conversational history of Genius Mode queries on the August platform.
-    Useful for retrieving recent AI research sessions, reviewing past queries, and
-    navigating to specific legal research conversations.
-
-    Args:
-        offset: Number of items to skip for pagination. Default: 0.
-        limit: Maximum number of chats to return. Default: server-defined.
-
-    Returns a list of chat objects with IDs, names, creation timestamps, and metadata."""
-    params: dict[str, Any] = {}
-    if offset is not None:
-        params["offset"] = offset
-    if limit is not None:
-        params["limit"] = limit
-    return json.dumps(_aug_get("/api/v1/chats", params or None), indent=2)
-
+def august_get_pre_share_policy(policy_id: str) -> str:
+    """[August Platform] Get a single pre-share policy by ID, including delivery counts."""
+    return json.dumps(_aug_get(f"/api/v1/pre-share-policies/{policy_id}"), indent=2)
 
 @mcp.tool()
-def august_rename_chat(chat_id: str, name: str) -> str:
-    """[August Platform] Rename an existing chat (Genius Mode session) by its ID.
-    Useful for organising legal research sessions with meaningful names so they
-    can be found and referenced later.
-
-    Args:
-        chat_id: Unique identifier of the chat to rename.
-        name: New name for the chat (max 200 characters).
-
-    Returns the updated chat object."""
-    return json.dumps(_aug_patch(f"/api/v1/chats/{chat_id}", {"name": name}), indent=2)
-
+def august_set_pre_share_policy_enabled(policy_id: str, is_enabled: bool) -> str:
+    """[August Platform] Enable or disable a pre-share policy without deleting it.
+    Pass is_enabled=False to pause automatic sharing, True to resume."""
+    return json.dumps(_aug_patch(f"/api/v1/pre-share-policies/{policy_id}", {"isEnabled": is_enabled}), indent=2)
 
 @mcp.tool()
-def august_delete_chat(chat_id: str, confirm: Optional[bool] = None) -> str:
-    """[August Platform] Permanently delete a chat (Genius Mode session) by its ID.
-    This removes the entire conversation history, AI responses, and associated context.
-    This action is irreversible — use with caution on important legal research sessions.
-
-    Args:
-        chat_id: Unique identifier of the chat to delete.
-        confirm: Pass True to confirm deletion (may be required by the server).
-
-    Returns a deletion confirmation."""
-    path = f"/api/v1/chats/{chat_id}"
-    if confirm is not None:
-        path += f"?confirm={str(confirm).lower()}"
-    return json.dumps(_aug_delete(path), indent=2)
-
-
-# ── Files ────────────────────────────────────────────────────────────────────
+def august_delete_pre_share_policy(policy_id: str) -> str:
+    """[August Platform] Delete a pre-share policy. Does not revoke already-delivered shares —
+    use august_revert_pre_share_policy first if you need to pull those back."""
+    return json.dumps(_aug_delete(f"/api/v1/pre-share-policies/{policy_id}"), indent=2)
 
 @mcp.tool()
-def august_get_file_content(
-    doc_id: str,
-    start_chunk_index: Optional[int] = None,
-    limit: Optional[int] = None,
-    project_id: Optional[str] = None
-) -> str:
-    """[August Platform] Retrieve the text content of a document stored in August by its document ID.
-    Returns the raw extracted text in chunks, which can be paginated using start_chunk_index.
-    Useful for reading contract clauses, reviewing document text before running queries,
-    or extracting specific sections of legal documents.
-
-    Args:
-        doc_id: Unique identifier of the document whose content to retrieve.
-        start_chunk_index: Zero-based index of the first text chunk to return (for pagination).
-        limit: Maximum number of text chunks to return.
-        project_id: Optional project scope to restrict access.
-
-    Returns document text content in chunks with chunk indices and total chunk count."""
-    params: dict[str, Any] = {}
-    if start_chunk_index is not None:
-        params["start_chunk_index"] = start_chunk_index
-    if limit is not None:
-        params["limit"] = limit
-    if project_id:
-        params["project_id"] = project_id
-    return json.dumps(_aug_get(f"/api/v1/files/{doc_id}/content", params or None), indent=2)
+def august_revert_pre_share_policy(policy_id: str, confirm: bool = False) -> str:
+    """[August Platform] Revert (revoke) the shares/duplicates a pre-share policy already delivered.
+    Destructive — you MUST pass confirm=True to proceed. Returns the revert result."""
+    return json.dumps(_aug_post(f"/api/v1/pre-share-policies/{policy_id}/revert", {"confirm": confirm}), indent=2)
 
 
-# ── Folders ──────────────────────────────────────────────────────────────────
-
-@mcp.tool()
-def august_create_folder(
-    name: str,
-    description: Optional[str] = None,
-    parent_id: Optional[str] = None,
-    project_id: Optional[str] = None
-) -> str:
-    """[August Platform] Create a new folder in the August document library.
-    Folders organise documents into logical groupings — e.g. by matter, client, or document type.
-    Folders can be nested under parent folders and scoped to specific projects.
-
-    Args:
-        name: Display name for the new folder (max 200 characters).
-        description: Optional description explaining the folder's purpose (max 2000 characters).
-        parent_id: ID of an existing folder to nest this folder inside.
-                   If omitted, the folder is created at the project/library root.
-        project_id: ID of the project this folder belongs to.
-                    If omitted, the folder lives in the personal document library.
-
-    Returns the created folder object with its ID, name, parent, and project."""
-    body: dict[str, Any] = {"name": name}
-    if description is not None:
-        body["description"] = description
-    if parent_id is not None:
-        body["parent_id"] = parent_id
-    if project_id is not None:
-        body["project_id"] = project_id
-    return json.dumps(_aug_post("/api/v1/folders", body), indent=2)
-
-
-@mcp.tool()
-def august_delete_folder(folder_id: str, confirm: Optional[bool] = None) -> str:
-    """[August Platform] Permanently delete a folder and all its contents from August.
-    WARNING: This recursively deletes all sub-folders and documents inside the folder.
-    This action is irreversible — ensure you have reviewed the folder contents first
-    using august_get_folder_contents or august_get_folder_tree before deleting.
-
-    Args:
-        folder_id: Unique identifier of the folder to delete.
-        confirm: Pass True to confirm deletion (may be required by the server for non-empty folders).
-
-    Returns a deletion confirmation."""
-    path = f"/api/v1/folders/{folder_id}"
-    if confirm is not None:
-        path += f"?confirm={str(confirm).lower()}"
-    return json.dumps(_aug_delete(path), indent=2)
-
-
-# ── Projects ─────────────────────────────────────────────────────────────────
-
-@mcp.tool()
-def august_create_project(
-    name: str,
-    description: Optional[str] = None,
-    client_num: Optional[str] = None,
-    matter_num: Optional[str] = None,
-    intelligence_prompt: Optional[str] = None,
-    sharing_enabled: bool = False
-) -> str:
-    """[August Platform] Create a new project in August for organising legal work.
-    Projects are top-level workspaces that group related folders, documents, and AI queries.
-    They are typically used per matter, client engagement, or practice group initiative.
-
-    Args:
-        name: Display name of the project (max 200 characters).
-        description: Optional description of the project scope (max 2000 characters).
-        client_num: Optional client/matter reference number (max 64 chars) for integration
-                    with practice management systems.
-        matter_num: Optional matter number (max 64 chars).
-        intelligence_prompt: Optional system-level AI instruction (max 10,000 chars) that
-                             biases how August AI operates within this project context.
-        sharing_enabled: Whether project-level sharing is enabled. Default: False.
-
-    Returns the newly created project object with its ID, name, and metadata."""
-    body: dict[str, Any] = {"name": name, "sharing_enabled": sharing_enabled}
-    if description is not None:
-        body["description"] = description
-    if client_num is not None:
-        body["client_num"] = client_num
-    if matter_num is not None:
-        body["matter_num"] = matter_num
-    if intelligence_prompt is not None:
-        body["intelligence_prompt"] = intelligence_prompt
-    return json.dumps(_aug_post("/api/v1/projects", body), indent=2)
-
-
-@mcp.tool()
-def august_rename_project(project_id: str, name: str) -> str:
-    """[August Platform] Rename an existing August project by its ID.
-    Useful for updating project names when matter names change or to apply
-    consistent naming conventions across the organisation's workspaces.
-
-    Args:
-        project_id: Unique identifier of the project to rename.
-        name: New name for the project (max 200 characters).
-
-    Returns the updated project object."""
-    return json.dumps(_aug_patch(f"/api/v1/projects/{project_id}", {"name": name}), indent=2)
-
-
-@mcp.tool()
-def august_delete_project(project_id: str, confirm: Optional[bool] = None) -> str:
-    """[August Platform] Permanently delete an August project and all its contents.
-    WARNING: This deletes all folders, documents, queries, and workflows associated
-    with the project. This action is irreversible.
-    Verify project contents with august_list_projects and august_get_folder_tree first.
-
-    Args:
-        project_id: Unique identifier of the project to delete.
-        confirm: Pass True to confirm deletion (may be required by the server).
-
-    Returns a deletion confirmation."""
-    path = f"/api/v1/projects/{project_id}"
-    if confirm is not None:
-        path += f"?confirm={str(confirm).lower()}"
-    return json.dumps(_aug_delete(path), indent=2)
-
-
-@mcp.tool()
-def august_list_project_root_folders(project_id: str) -> str:
-    """[August Platform] List the root-level folders in a specific August project.
-    Returns only the top-level folders — use august_get_folder_contents or
-    august_get_folder_tree to explore nested sub-folders.
-    Useful for navigating project structure and locating document collections
-    for a specific matter or practice group.
-
-    Args:
-        project_id: Unique identifier of the project whose root folders to list.
-
-    Returns a list of folder objects with IDs, names, document counts, and timestamps."""
-    return json.dumps(_aug_get(f"/api/v1/projects/{project_id}/folders"), indent=2)
-
-
-# ── Query Management ─────────────────────────────────────────────────────────
-
-@mcp.tool()
-def august_cancel_query(query_id: str) -> str:
-    """[August Platform] Cancel a running or pending Genius Mode query before it completes.
-    Use this when a query is taking too long, was submitted with incorrect parameters,
-    or is no longer needed. Cancelled queries cannot be resumed — resubmit with
-    august_submit_query if needed.
-
-    Args:
-        query_id: Unique identifier of the query to cancel (obtained from august_submit_query).
-
-    Returns a cancellation confirmation with final status."""
-    return json.dumps(_aug_post(f"/api/v1/queries/{query_id}/cancel"), indent=2)
-
-
-# ── Content Search ────────────────────────────────────────────────────────────
+# ── Content Search ──────────────────────────────────────────────────────────
 
 @mcp.tool()
 def august_search_content(
@@ -2041,104 +2106,48 @@ def august_search_content(
     folder_ids: Optional[List[str]] = None,
     doc_ids: Optional[List[str]] = None,
     project_id: Optional[str] = None,
-    top_k: int = 10
+    top_k: int = 10,
 ) -> str:
-    """[August Platform] Perform a semantic content search across August documents.
-    Unlike the keyword-based august_global_search, this uses vector/semantic similarity
-    to find document passages that are conceptually relevant to the query — ideal for
-    searching legal concepts, clause types, or finding analogous provisions across contracts.
+    """[August Platform] Full-text (BM25) search across the parsed text of accessible documents.
+    Unlike the name-based august_global_search, this searches inside document content and
+    returns matching chunks with highlighted snippets — ideal for finding clause types,
+    legal concepts, or analogous provisions across contracts.
+
+    You MUST scope the search: pass at least one of folder_ids or doc_ids (the backend
+    rejects an unscoped content search).
 
     Args:
         q: The search query string (natural language or keywords).
         folder_ids: Restrict search to specific folder IDs.
         doc_ids: Restrict search to specific document IDs.
         project_id: Restrict search to a specific project.
-        top_k: Maximum number of matching passages to return. Default: 10.
+        top_k: Maximum number of matching chunks to return (1–100, default 10).
 
-    Returns ranked matching passages with document references, relevance scores, and context."""
-    body: dict[str, Any] = {"q": q, "top_k": top_k}
+    Returns ranked matching chunks with document references and highlighted snippets."""
+    body: dict[str, Any] = {"q": q, "topK": top_k}
     if folder_ids:
-        body["folder_ids"] = folder_ids
+        body["folderIds"] = folder_ids
     if doc_ids:
-        body["doc_ids"] = doc_ids
+        body["docIds"] = doc_ids
     if project_id:
-        body["project_id"] = project_id
+        body["projectId"] = project_id
     return json.dumps(_aug_post("/api/v1/search/content", body), indent=2)
 
 
-# ── NOT YET ON PUBLIC API ─────────────────────────────────────────────────────
-# The following capabilities are available in the August platform UI but do not
-# yet have /api/v1/ public API endpoints. They use internal Clerk JWT session
-# auth and are not accessible via API keys:
+# ── NOT ON THE PUBLIC API ──────────────────────────────────────────────────
+# The following are available in the August platform UI but have no /api/v1/
+# public endpoints (they use internal Clerk JWT session auth, not ak_ keys):
 #
+#   Translation:          /translate and /translate/languages were never part of
+#                         the public v1 surface and 404 on app.august.law — the
+#                         august_create_translation / august_get_supported_languages
+#                         tools were removed in the 2026-07 migration.
 #   Workflow management:  list, get, run, schedule, update-defaults, runs history
 #   Event triggers:       create, list, update, delete
 #   Tabular reviews:      extract, get, entries, Excel export, status, recent
 #
-# Once the engineering team ships /api/v1/ versions of these endpoints, tools
-# can be added here to expose them through the MCP.
-# ──────────────────────────────────────────────────────────────────────────────
-
-
-# ── Translation ──────────────────────────────────────────────────────────────
-
-@mcp.tool()
-def august_create_translation(
-    target_language: str,
-    user_email: str,
-    doc_id: Optional[str] = None,
-    text: Optional[str] = None,
-    source_language: Optional[str] = None
-) -> str:
-    """[August Platform] Create a translation of a legal document or text into a target language.
-    August's translation feature is designed for legal documents — it preserves formatting,
-    legal terminology, and document structure. Supports translating contracts, court filings,
-    correspondence, and regulatory documents for cross-border matters.
-
-    You must provide either doc_id (to translate a stored document) OR text (to translate
-    raw text content) — these are mutually exclusive.
-
-    Args:
-        target_language: Language to translate into (use language codes from august_get_supported_languages).
-                         Examples: 'fr', 'de', 'ja', 'zh', 'es', 'pt', 'ko'.
-        user_email: Email address of the user requesting the translation.
-        doc_id: ID of a document stored in August to translate (mutually exclusive with text).
-        text: Raw text string to translate (mutually exclusive with doc_id).
-        source_language: Optional source language code. If omitted, August auto-detects the language.
-
-    IMPORTANT: Translation runs asynchronously. Use the returned translation_id to check status
-    and retrieve the translated content.
-
-    Returns a translation object with translation_id and processing status."""
-    body: dict[str, Any] = {
-        "target_language": target_language,
-        "user_email": user_email,
-    }
-    if doc_id is not None:
-        body["doc_id"] = doc_id
-    if text is not None:
-        body["text"] = text
-    if source_language is not None:
-        body["source_language"] = source_language
-    return json.dumps(_aug_post("/translate", body), indent=2)
-
-
-@mcp.tool()
-def august_get_supported_languages(type: Optional[str] = None) -> str:
-    """[August Platform] Retrieve the list of languages supported by August's translation feature.
-    Returns language codes and display names for all languages that August can translate
-    legal documents to and from. Use the returned language codes as the target_language
-    parameter when calling august_create_translation.
-
-    Args:
-        type: Optional filter for language type (e.g., 'target', 'source').
-              If omitted, returns all supported languages.
-
-    Returns a list of language objects with codes (e.g., 'fr', 'de') and display names."""
-    params: dict[str, Any] = {}
-    if type is not None:
-        params["type"] = type
-    return json.dumps(_aug_get("/translate/languages", params or None), indent=2)
+# Once the engineering team ships /api/v1/ versions of these, add tools here.
+# ────────────────────────────────────────────────────────────────────────────
 
 
 # ===========================================================================
