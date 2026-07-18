@@ -9,7 +9,7 @@ All tools are prefixed with their service name so any MCP client or LLM can
 route to the right service without ambiguity.
 """
 import os, json
-from typing import Any, Optional, List
+from typing import Any, Dict, Optional, List
 import httpx
 from mcp.server.fastmcp import FastMCP
 
@@ -1569,6 +1569,16 @@ def attio_create_status(object_slug: str, attribute_slug: str, title: str, color
 #   • Folder listing & global search use query params + cursor pagination
 #   • Request bodies / several query params are camelCase
 #   • Translation (/translate) is NOT part of the public v1 API — tools removed.
+#
+# 2026-07-18 update — new public surface added upstream (July 10-17):
+#   • Skills API:            GET/POST /skills, GET/PATCH/DELETE /skills/{id},
+#                            POST /skills/{id}/duplicate
+#   • Agents (workflows):    GET /workflows, GET /workflows/{id}/run-inputs,
+#                            POST /workflows/{id}/run, GET /workflows/{id}/runs,
+#                            GET /workflows/{id}/runs/{runId}
+#   • Uploads:               POST /uploads/sign + POST /uploads/register
+#                            (two-step presigned-PUT flow, single part ≤ ~25MB)
+#   • Folder resolution:     GET /folders/resolve (exact name -> folder id)
 # Full spec: https://app.august.law/api/v1/openapi.json
 # ===========================================================================
 
@@ -1696,6 +1706,31 @@ def august_get_folder_tree(folder_id: str) -> str:
     Returns the complete hierarchy of subfolders and files as a nested tree structure.
     Useful for understanding the full organizational structure of a project's documents."""
     return json.dumps(_aug_get(f"/api/v1/folders/{folder_id}/tree"), indent=2)
+
+@mcp.tool()
+def august_resolve_folder(
+    name: str,
+    project_id: Optional[str] = None,
+    parent_folder_id: Optional[str] = None,
+) -> str:
+    """[August Platform] Find the id of an accessible folder by its exact (case-insensitive) name.
+    Use this to turn a human folder name into the folderId needed by august_upload_file,
+    august_get_folder_contents, etc.
+
+    Args:
+        name: Exact folder name (case-insensitive match).
+        project_id: Scope the lookup to a project. Omit (with parent_folder_id) for
+                    the personal workspace.
+        parent_folder_id: Scope the lookup to a specific subtree.
+
+    Returns {id, name}. Errors: 404 if no folder matches; 409 if the name is
+    ambiguous (the error message lists the candidate ids)."""
+    params: dict[str, Any] = {"name": name}
+    if project_id:
+        params["projectId"] = project_id
+    if parent_folder_id:
+        params["parentFolderId"] = parent_folder_id
+    return json.dumps(_aug_get("/api/v1/folders/resolve", params), indent=2)
 
 
 # ── Files ───────────────────────────────────────────────────────────────────
@@ -2010,6 +2045,132 @@ def august_create_workflow(
         body["idempotencyKey"] = idempotency_key
     return json.dumps(_aug_post("/api/v1/workflows", body), indent=2)
 
+@mcp.tool()
+def august_list_workflows(
+    search: Optional[str] = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> str:
+    """[August Platform] List the agents (saved workflows) the caller owns or has been
+    shared, most recent first. Use the returned id with august_get_workflow_run_inputs
+    to see how to run one, then august_run_workflow to trigger it.
+
+    Args:
+        search: Optional name filter.
+        limit: Max results (default 50).
+        offset: Pagination offset (default 0).
+
+    Returns {items: [{id, name, description, isEnabled, createdAt}], total}."""
+    params: dict[str, Any] = {"limit": limit, "offset": offset}
+    if search:
+        params["search"] = search
+    return json.dumps(_aug_get("/api/v1/workflows", params), indent=2)
+
+@mcp.tool()
+def august_get_workflow_run_inputs(workflow_id: str, project_id: Optional[str] = None) -> str:
+    """[August Platform] Describe how to run an agent: the per-run input fields to answer
+    (via the `inputs` map on august_run_workflow) and the default attachments the run
+    inherits (file_ids, folder_ids, skill_ids, ...).
+
+    Args:
+        workflow_id: The agent's id (from august_list_workflows).
+        project_id: Project scope; omit for the personal workspace.
+
+    Returns {workflowId, name, description, goal, inputs: {fields, file_ids, folder_ids,
+    tabular_review_ids, playbook_ids, workflow_ids, skill_ids, input_defaults}}.
+    404 if the agent is inaccessible or has no runnable version."""
+    params = {"projectId": project_id} if project_id else None
+    return json.dumps(_aug_get(f"/api/v1/workflows/{workflow_id}/run-inputs", params), indent=2)
+
+@mcp.tool()
+def august_run_workflow(
+    workflow_id: str,
+    inputs: Optional[Dict[str, str]] = None,
+    file_ids: Optional[List[str]] = None,
+    folder_ids: Optional[List[str]] = None,
+    skill_ids: Optional[List[str]] = None,
+    tabular_review_ids: Optional[List[str]] = None,
+    playbook_ids: Optional[List[str]] = None,
+    run_context: Optional[str] = None,
+    project_id: Optional[str] = None,
+) -> str:
+    """[August Platform] Trigger a manual run of an agent (saved workflow). Attachments
+    (file_ids/folder_ids/...) and the `inputs` map override the agent's defaults; omit
+    them to run with the defaults from august_get_workflow_run_inputs.
+
+    Args:
+        workflow_id: The agent's id.
+        inputs: Map of input-field key -> answer, per the `fields` from
+                august_get_workflow_run_inputs.
+        file_ids: Override document attachments.
+        folder_ids: Override folder attachments.
+        skill_ids: Override attached skills.
+        tabular_review_ids: Override attached tabular reviews.
+        playbook_ids: Override attached playbooks.
+        run_context: Optional free-text context for this run.
+        project_id: Project scope; omit for the personal workspace.
+
+    Returns {run_id, workflow_id, chat_id, question_id, message} immediately —
+    poll august_get_workflow_run until status is succeeded/failed/cancelled."""
+    body: dict[str, Any] = {}
+    if inputs:
+        body["inputs"] = inputs
+    if file_ids:
+        body["file_ids"] = file_ids
+    if folder_ids:
+        body["folder_ids"] = folder_ids
+    if skill_ids:
+        body["skill_ids"] = skill_ids
+    if tabular_review_ids:
+        body["tabular_review_ids"] = tabular_review_ids
+    if playbook_ids:
+        body["playbook_ids"] = playbook_ids
+    if run_context:
+        body["run_context"] = run_context
+    if project_id:
+        body["projectId"] = project_id
+    return json.dumps(_aug_post(f"/api/v1/workflows/{workflow_id}/run", body), indent=2)
+
+@mcp.tool()
+def august_list_workflow_runs(
+    workflow_id: str,
+    limit: int = 20,
+    cursor: Optional[str] = None,
+    project_id: Optional[str] = None,
+) -> str:
+    """[August Platform] List the runs the caller triggered for an agent, most recent
+    first (keyset-paginated by cursor). Each item carries the run's status and produced
+    documents; use august_get_workflow_run for the full run payload.
+
+    Args:
+        workflow_id: The agent's id.
+        limit: Max runs per page (1-100, default 20).
+        cursor: Pass the previous page's nextCursor to fetch the next page.
+        project_id: Project scope; omit for the personal workspace.
+
+    Returns {runs: [...], nextCursor, totalCount} (totalCount only on the first page)."""
+    params: dict[str, Any] = {"limit": limit}
+    if cursor:
+        params["cursor"] = cursor
+    if project_id:
+        params["projectId"] = project_id
+    return json.dumps(_aug_get(f"/api/v1/workflows/{workflow_id}/runs", params), indent=2)
+
+@mcp.tool()
+def august_get_workflow_run(workflow_id: str, run_id: str, project_id: Optional[str] = None) -> str:
+    """[August Platform] Status and result of a single agent run: its status, resolved
+    inputs, final output / error, and produced documents. Poll this after
+    august_run_workflow until status is succeeded/failed/cancelled.
+
+    Args:
+        workflow_id: The agent's id.
+        run_id: The run id returned by august_run_workflow.
+        project_id: Project scope; omit for the personal workspace.
+
+    Returns {run: {status, resolved_inputs, final_output, error, ...}, producedDocuments}."""
+    params = {"projectId": project_id} if project_id else None
+    return json.dumps(_aug_get(f"/api/v1/workflows/{workflow_id}/runs/{run_id}", params), indent=2)
+
 
 # ── Pre-Share Policies ──────────────────────────────────────────────────────
 
@@ -2098,6 +2259,176 @@ def august_revert_pre_share_policy(policy_id: str, confirm: bool = False) -> str
     return json.dumps(_aug_post(f"/api/v1/pre-share-policies/{policy_id}/revert", {"confirm": confirm}), indent=2)
 
 
+# ── Skills ──────────────────────────────────────────────────────────────────
+
+@mcp.tool()
+def august_list_skills(project_id: str = "personal", search: Optional[str] = None) -> str:
+    """[August Platform] List the skills (reusable prompt playbooks) visible to the caller
+    in a project scope. Includes premade August skills (source='august', read-only) and
+    user-created skills.
+
+    Args:
+        project_id: Project uuid, or "personal" (default) for skills not attached to
+                    any project.
+        search: Optional name filter (max 500 chars).
+
+    Returns an array of skills: {id, name, description, icon, source, body, createdAt,
+    isPinned, permissionLevel, owner, documents, groupIds} — pinned first, then newest."""
+    params: dict[str, Any] = {"projectId": project_id}
+    if search:
+        params["search"] = search
+    return json.dumps(_aug_get("/api/v1/skills", params), indent=2)
+
+@mcp.tool()
+def august_get_skill(skill_id: str) -> str:
+    """[August Platform] Get a single skill by id, including its full body text and
+    attached documents. 404 if missing or inaccessible."""
+    return json.dumps(_aug_get(f"/api/v1/skills/{skill_id}"), indent=2)
+
+@mcp.tool()
+def august_create_skill(
+    name: str,
+    body: str,
+    project_id: str = "personal",
+    description: Optional[str] = None,
+    icon: Optional[str] = None,
+    group_ids: Optional[List[str]] = None,
+    document_ids: Optional[List[str]] = None,
+) -> str:
+    """[August Platform] Create a skill owned by the caller.
+
+    Args:
+        name: Skill name (max 300 chars).
+        body: The skill's prompt/instructions text.
+        project_id: Project uuid, or "personal" (default) to keep it out of any project.
+        description: Optional description (max 2000 chars).
+        icon: Optional icon identifier (max 64 chars).
+        group_ids: Optional skill-group uuids to add it to (max 100).
+        document_ids: Optional ordered document uuids to attach (max 100) — the index
+                      in this list becomes the 1-based document index.
+
+    Returns the created skill object."""
+    payload: dict[str, Any] = {"name": name, "body": body, "projectId": project_id}
+    if description is not None:
+        payload["description"] = description
+    if icon is not None:
+        payload["icon"] = icon
+    if group_ids:
+        payload["groupIds"] = group_ids
+    if document_ids:
+        payload["documentIds"] = document_ids
+    return json.dumps(_aug_post("/api/v1/skills", payload), indent=2)
+
+@mcp.tool()
+def august_update_skill(
+    skill_id: str,
+    name: Optional[str] = None,
+    body: Optional[str] = None,
+    description: Optional[str] = None,
+    icon: Optional[str] = None,
+    group_ids: Optional[List[str]] = None,
+    document_ids: Optional[List[str]] = None,
+) -> str:
+    """[August Platform] Update a skill. Requires editor access or above; premade
+    (august) skills are read-only — use august_duplicate_skill instead.
+
+    Only the fields you pass are changed. group_ids/document_ids REPLACE the existing
+    sets when provided.
+
+    Returns the updated skill object."""
+    payload: dict[str, Any] = {}
+    if name is not None:
+        payload["name"] = name
+    if body is not None:
+        payload["body"] = body
+    if description is not None:
+        payload["description"] = description
+    if icon is not None:
+        payload["icon"] = icon
+    if group_ids is not None:
+        payload["groupIds"] = group_ids
+    if document_ids is not None:
+        payload["documentIds"] = document_ids
+    return json.dumps(_aug_patch(f"/api/v1/skills/{skill_id}", payload), indent=2)
+
+@mcp.tool()
+def august_delete_skill(skill_id: str) -> str:
+    """[August Platform] Soft-delete a skill. Requires a direct owner grant on the skill.
+    Returns {id} of the deleted skill."""
+    return json.dumps(_aug_delete(f"/api/v1/skills/{skill_id}"), indent=2)
+
+@mcp.tool()
+def august_duplicate_skill(skill_id: str, project_id: str = "personal") -> str:
+    """[August Platform] Copy any accessible skill into a new skill owned by the caller —
+    the customization path for premade (august) skills. The copy is named
+    "Copy of <name>", keeps body/description/icon and attached documents.
+
+    Args:
+        skill_id: The skill to copy.
+        project_id: Project uuid for the copy, or "personal" (default).
+
+    Returns the new skill object."""
+    return json.dumps(
+        _aug_post(f"/api/v1/skills/{skill_id}/duplicate", {"projectId": project_id}), indent=2
+    )
+
+
+# ── Uploads ─────────────────────────────────────────────────────────────────
+
+@mcp.tool()
+def august_upload_file(
+    file_name: str,
+    folder_id: str,
+    content_text: Optional[str] = None,
+    content_base64: Optional[str] = None,
+    content_type: str = "text/plain",
+) -> str:
+    """[August Platform] Upload a file into an August folder. Runs the full two-step
+    upload flow server-side: POST /uploads/sign -> PUT bytes to the presigned URL ->
+    POST /uploads/register.
+
+    Pass exactly one of content_text (plain text) or content_base64 (base64-encoded
+    binary, e.g. for PDF/DOCX). Single-part uploads only (~25MB max).
+
+    Args:
+        file_name: The file name to create (e.g. "notes.txt", "contract.pdf").
+        folder_id: Destination folder id (resolve a name via august_resolve_folder,
+                   or browse with august_get_folder_contents).
+        content_text: File content as plain text.
+        content_base64: File content as base64 (for binary formats).
+        content_type: MIME type of the content (default "text/plain"; use e.g.
+                      "application/pdf" for PDFs).
+
+    Returns the register result: {ok, docId, status} on success or {ok: false, error}."""
+    import base64 as _b64
+    if (content_text is None) == (content_base64 is None):
+        raise ValueError("Pass exactly one of content_text or content_base64.")
+    data = content_text.encode("utf-8") if content_text is not None else _b64.b64decode(content_base64)
+
+    signed = _aug_post(
+        "/api/v1/uploads/sign",
+        {"contentType": content_type, "fileName": file_name, "fileSize": len(data)},
+    )
+    put = httpx.put(signed["url"], content=data, headers={"Content-Type": content_type}, timeout=120)
+    put.raise_for_status()
+
+    registered = _aug_post(
+        "/api/v1/uploads/register",
+        {
+            "files": [
+                {
+                    "bucket": signed["bucket"],
+                    "key": signed["key"],
+                    "fileName": file_name,
+                    "folderId": folder_id,
+                    "fileSize": len(data),
+                }
+            ]
+        },
+    )
+    return json.dumps(registered, indent=2)
+
+
 # ── Content Search ──────────────────────────────────────────────────────────
 
 @mcp.tool()
@@ -2142,7 +2473,8 @@ def august_search_content(
 #                         the public v1 surface and 404 on app.august.law — the
 #                         august_create_translation / august_get_supported_languages
 #                         tools were removed in the 2026-07 migration.
-#   Workflow management:  list, get, run, schedule, update-defaults, runs history
+#   Workflow management:  schedule, update-defaults (list/run-inputs/run/runs went
+#                         public July 2026 — tools added above)
 #   Event triggers:       create, list, update, delete
 #   Tabular reviews:      extract, get, entries, Excel export, status, recent
 #
