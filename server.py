@@ -1655,11 +1655,23 @@ def august_global_search(
     return json.dumps(_aug_get("/api/v1/search", params), indent=2)
 
 @mcp.tool()
-def august_project_search(project_id: str, query: str, scope: str = "all") -> str:
+def august_project_search(
+    project_id: str,
+    query: str,
+    scope: str = "all",
+    parent_folder_id: Optional[str] = None,
+) -> str:
     """[August Platform] Name search scoped to a single project's folders and files.
     Convenience wrapper over the global /search endpoint with projectId set.
-    scope: 'folders', 'files', or 'all' (default)."""
+
+    Args:
+        project_id: The project to search within.
+        query: The search string to match against file and folder names.
+        scope: 'folders', 'files', or 'all' (default).
+        parent_folder_id: Restrict the search to a specific subtree of the project."""
     params: dict[str, Any] = {"query": query, "projectId": project_id, "scope": scope}
+    if parent_folder_id:
+        params["parentFolderId"] = parent_folder_id
     return json.dumps(_aug_get("/api/v1/search", params), indent=2)
 
 
@@ -1669,11 +1681,13 @@ def august_project_search(project_id: str, query: str, scope: str = "all") -> st
 def august_get_folder_contents(
     folder_id: Optional[str] = None,
     project_id: Optional[str] = None,
-    cursor: Optional[str] = None,
+    cursor: Optional[int] = None,
     limit: int = 100,
     sort_by: str = "name",
     sort_desc: bool = False,
     include_files: bool = True,
+    include_tags: bool = True,
+    filter_tag_ids: Optional[List[str]] = None,
 ) -> str:
     """[August Platform] List a folder's contents: subfolders (alphabetical) then files (cursor-paginated).
     Omit folder_id to list the personal/project root; pass project_id to list a project's root.
@@ -1684,20 +1698,25 @@ def august_get_folder_contents(
     Args:
         folder_id: Folder to list. Omit for the root.
         project_id: Scope to a project's root when folder_id is omitted.
-        cursor: Opaque pagination cursor from the previous page.
-        limit: Max files per page (default 100).
+        cursor: Numeric offset from the previous page (not an opaque token).
+        limit: Max files per page (default 100, max 5000).
         sort_by: 'name', 'created_at', 'updated_at', 'file_size', or 'file_type'.
         sort_desc: Sort descending when True.
-        include_files: Set False to return only subfolders."""
+        include_files: Set False to return only subfolders.
+        include_tags: Set False to omit tag data from the response (default True).
+        filter_tag_ids: Only return items carrying any of these tag ids (max 50)."""
     params: dict[str, Any] = {
-        "limit": limit, "sortBy": sort_by, "sortDesc": sort_desc, "includeFiles": include_files,
+        "limit": limit, "sortBy": sort_by, "sortDesc": sort_desc,
+        "includeFiles": include_files, "includeTags": include_tags,
     }
     if folder_id:
         params["parentFolderId"] = folder_id
     if project_id:
         params["projectId"] = project_id
-    if cursor:
+    if cursor is not None:
         params["cursor"] = cursor
+    if filter_tag_ids:
+        params["filterTagIds"] = filter_tag_ids
     return json.dumps(_aug_get("/api/v1/folders/contents", params), indent=2)
 
 @mcp.tool()
@@ -1793,6 +1812,10 @@ def august_submit_query(
     project_id: Optional[str] = None,
     folder_ids: Optional[List[str]] = None,
     file_ids: Optional[List[str]] = None,
+    tabular_review_ids: Optional[List[str]] = None,
+    playbook_ids: Optional[List[str]] = None,
+    workflow_ids: Optional[List[str]] = None,
+    workflow_run_ids: Optional[List[str]] = None,
     mode: Optional[List[str]] = None,
     workflow_name: str = "query",
 ) -> str:
@@ -1811,10 +1834,17 @@ def august_submit_query(
         project_id: Scope the query to a project.
         folder_ids / file_ids: Scope the query to specific folders/files. Without scope,
                  it searches across all accessible documents.
+        tabular_review_ids: Attach tabular reviews as context for the question.
+        playbook_ids: Attach playbooks as context for the question.
+        workflow_ids: Attach agents (workflows) as context for the question.
+        workflow_run_ids: Attach the output of previous agent runs as context —
+                 useful for asking follow-up questions about a completed run.
         mode: List of mode strings (default ['auto']). 'auto' lets August pick the best mode.
         workflow_name: Optional label for the run (default 'query').
 
     Returns {status, message, chat_id, question_id}."""
+    # NOTE: unlike most August endpoints, POST /chats takes a snake_case body. That is
+    # what the published schema specifies — it is not a bug.
     body: dict[str, Any] = {
         "prompt": query,
         "chat_id": chat_id or AUG_NIL_UUID,
@@ -1827,6 +1857,14 @@ def august_submit_query(
         body["folder_ids"] = folder_ids
     if file_ids:
         body["file_ids"] = file_ids
+    if tabular_review_ids:
+        body["tabular_review_ids"] = tabular_review_ids
+    if playbook_ids:
+        body["playbook_ids"] = playbook_ids
+    if workflow_ids:
+        body["workflow_ids"] = workflow_ids
+    if workflow_run_ids:
+        body["workflow_run_ids"] = workflow_run_ids
     return json.dumps(_aug_post("/api/v1/chats", body), indent=2)
 
 @mcp.tool()
@@ -1870,27 +1908,43 @@ def august_cancel_query(question_id: str) -> str:
 @mcp.tool()
 def august_list_chats(
     limit: int = 20,
-    cursor: Optional[str] = None,
+    cursor: Optional[int] = None,
     project_id: Optional[str] = None,
     search: Optional[str] = None,
+    chat_types: Optional[List[str]] = None,
+    modes: Optional[List[str]] = None,
+    minutes_ago: Optional[int] = None,
+    tag_ids: Optional[List[str]] = None,
 ) -> str:
     """[August Platform] List chats (Genius Mode sessions) accessible to the authenticated user.
     Cursor-paginated. Useful for retrieving recent AI research sessions and reviewing past queries.
 
     Args:
-        limit: Maximum number of chats to return (default 20).
-        cursor: Opaque pagination cursor from the previous page.
+        limit: Maximum number of chats to return (1-100, default 20).
+        cursor: Numeric offset from the previous page (not an opaque token).
         project_id: Filter to chats within a specific project.
         search: Free-text filter over chat names.
+        chat_types: Filter to specific chat types.
+        modes: Filter to chats run in specific modes.
+        minutes_ago: Only return chats updated within the last N minutes.
+        tag_ids: Filter to chats carrying any of these tag ids.
 
     Returns a list of chat objects plus a cursor for the next page."""
     params: dict[str, Any] = {"limit": limit}
-    if cursor:
+    if cursor is not None:
         params["cursor"] = cursor
     if project_id:
         params["projectId"] = project_id
     if search:
         params["search"] = search
+    if chat_types:
+        params["chatTypes"] = chat_types
+    if modes:
+        params["modes"] = modes
+    if minutes_ago is not None:
+        params["minutesAgo"] = minutes_ago
+    if tag_ids:
+        params["tagIds"] = tag_ids
     return json.dumps(_aug_get("/api/v1/chats", params), indent=2)
 
 @mcp.tool()
@@ -1947,12 +2001,30 @@ def august_create_folder(
     return json.dumps(_aug_post("/api/v1/folders", body), indent=2)
 
 @mcp.tool()
-def august_delete_folder(folder_id: str) -> str:
-    """[August Platform] Soft-delete a folder and its entire subtree (owner-only).
-    WARNING: this recursively removes all sub-folders and documents inside the folder.
+def august_delete_folder(
+    folder_id: Optional[str] = None,
+    folder_ids: Optional[List[str]] = None,
+) -> str:
+    """[August Platform] Soft-delete one or more folders and their entire subtrees (owner-only).
+    WARNING: this recursively removes all sub-folders and documents inside each folder.
     Review the folder contents with august_get_folder_contents or august_get_folder_tree first.
+
+    Args:
+        folder_ids: Folders to delete — up to 100 ids in a single call.
+        folder_id: Single-folder convenience alias for folder_ids. Pass either one;
+                   if both are given the ids are merged (de-duplicated, order preserved).
+
     Returns a deletion confirmation."""
-    return json.dumps(_aug_delete("/api/v1/folders", [("folderIds", folder_id)]), indent=2)
+    ids: List[str] = list(folder_ids or [])
+    if folder_id:
+        ids.append(folder_id)
+    # Preserve order while de-duplicating.
+    ids = list(dict.fromkeys(ids))
+    if not ids:
+        raise ValueError("Pass folder_id or folder_ids.")
+    if len(ids) > 100:
+        raise ValueError(f"At most 100 folder ids per call (got {len(ids)}).")
+    return json.dumps(_aug_delete("/api/v1/folders", [("folderIds", i) for i in ids]), indent=2)
 
 
 # ── Projects (create / rename / delete) ─────────────────────────────────────
@@ -1976,7 +2048,7 @@ def august_create_project(
         description: Optional scope description (max 2000 characters).
         client_num: Optional client/matter reference number (max 64 chars).
         matter_num: Optional matter number (max 64 chars).
-        intelligence_prompt: Optional system-level AI instruction (max 10,000 chars) that
+        intelligence_prompt: Optional system-level AI instruction (max 5000 chars) that
                              biases how August AI operates within this project.
         sharing_enabled: Whether project-level sharing is enabled (default False).
 
@@ -2069,16 +2141,21 @@ def august_list_workflows(
 @mcp.tool()
 def august_get_workflow_run_inputs(workflow_id: str, project_id: Optional[str] = None) -> str:
     """[August Platform] Describe how to run an agent: the per-run input fields to answer
-    (via the `inputs` map on august_run_workflow) and the default attachments the run
-    inherits (file_ids, folder_ids, skill_ids, ...).
+    (via `inputs` / `input_bindings` on august_run_workflow) and the default attachments
+    the run inherits (file_ids, folder_ids, skill_ids, ...).
+
+    Each entry in `inputs.fields` carries a `kind`: file, folder, playbook,
+    tabular_review, workflow, choice, text, or recipients. Answer text/choice/recipients
+    fields through august_run_workflow's `inputs` map; file/folder/tabular_review/
+    workflow fields can ONLY be answered through its `input_bindings` map.
 
     Args:
         workflow_id: The agent's id (from august_list_workflows).
         project_id: Project scope; omit for the personal workspace.
 
-    Returns {workflowId, name, description, goal, inputs: {fields, file_ids, folder_ids,
-    tabular_review_ids, playbook_ids, workflow_ids, skill_ids, input_defaults}}.
-    404 if the agent is inaccessible or has no runnable version."""
+    Returns {workflowId, name, description, currentVersionId, goal, inputs: {fields,
+    file_ids, folder_ids, tabular_review_ids, playbook_ids, workflow_ids, skill_ids,
+    input_defaults}}. 404 if the agent is inaccessible or has no runnable version."""
     params = {"projectId": project_id} if project_id else None
     return json.dumps(_aug_get(f"/api/v1/workflows/{workflow_id}/run-inputs", params), indent=2)
 
@@ -2086,35 +2163,64 @@ def august_get_workflow_run_inputs(workflow_id: str, project_id: Optional[str] =
 def august_run_workflow(
     workflow_id: str,
     inputs: Optional[Dict[str, str]] = None,
+    input_bindings: Optional[Dict[str, Dict[str, List[str]]]] = None,
     file_ids: Optional[List[str]] = None,
     folder_ids: Optional[List[str]] = None,
     skill_ids: Optional[List[str]] = None,
     tabular_review_ids: Optional[List[str]] = None,
     playbook_ids: Optional[List[str]] = None,
+    workflow_ids: Optional[List[str]] = None,
+    workflow_ids_override: Optional[List[str]] = None,
+    email_ids: Optional[List[str]] = None,
     run_context: Optional[str] = None,
     project_id: Optional[str] = None,
 ) -> str:
     """[August Platform] Trigger a manual run of an agent (saved workflow). Attachments
-    (file_ids/folder_ids/...) and the `inputs` map override the agent's defaults; omit
+    (file_ids/folder_ids/...) and the input maps override the agent's defaults; omit
     them to run with the defaults from august_get_workflow_run_inputs.
+
+    ANSWERING INPUT FIELDS — there are TWO maps, and which one to use depends on the
+    field's `kind` from august_get_workflow_run_inputs (fields[].kind is one of
+    file | folder | playbook | tabular_review | workflow | choice | text | recipients):
+      • `inputs` — plain string answers. Use for kind 'text', 'choice', 'recipients'.
+      • `input_bindings` — resource references. REQUIRED for kind 'file', 'folder',
+        'tabular_review' and 'workflow': those fields CANNOT be answered through
+        `inputs`, because a string is not a resource reference.
+
+    If a required resource-typed field is left unanswered the run is created but parks
+    in the `waiting` status. There is no resume endpoint on the public API, so such a
+    run cannot be completed — always bind resource-typed fields up front.
 
     Args:
         workflow_id: The agent's id.
-        inputs: Map of input-field key -> answer, per the `fields` from
-                august_get_workflow_run_inputs.
+        inputs: Map of input-field key -> string answer, for text/choice/recipients fields.
+        input_bindings: Map of input-field key -> a dict with any of the keys
+                `file_ids`, `folder_ids`, `tabular_review_ids`, `playbook_ids`,
+                `workflow_ids` (each a list of ids). Use for file/folder/
+                tabular_review/workflow fields.
+                Example: {"contract": {"file_ids": ["doc-123"]}}
         file_ids: Override document attachments.
         folder_ids: Override folder attachments.
         skill_ids: Override attached skills.
         tabular_review_ids: Override attached tabular reviews.
         playbook_ids: Override attached playbooks.
+        workflow_ids: Sub-agent attachments for this run.
+        workflow_ids_override: Replace the agent's configured sub-agents for this run.
+        email_ids: Email attachments for this run.
         run_context: Optional free-text context for this run.
         project_id: Project scope; omit for the personal workspace.
 
     Returns {run_id, workflow_id, chat_id, question_id, message} immediately —
-    poll august_get_workflow_run until status is succeeded/failed/cancelled."""
+    poll august_get_workflow_run until status is succeeded/failed/cancelled
+    (or `waiting`, meaning an input field was left unanswered — see above)."""
+    # NOTE: this endpoint's body genuinely mixes casing — `projectId` is camelCase
+    # while every other field is snake_case. That matches the published schema; do
+    # not "normalise" it.
     body: dict[str, Any] = {}
     if inputs:
         body["inputs"] = inputs
+    if input_bindings:
+        body["input_bindings"] = input_bindings
     if file_ids:
         body["file_ids"] = file_ids
     if folder_ids:
@@ -2125,6 +2231,12 @@ def august_run_workflow(
         body["tabular_review_ids"] = tabular_review_ids
     if playbook_ids:
         body["playbook_ids"] = playbook_ids
+    if workflow_ids:
+        body["workflow_ids"] = workflow_ids
+    if workflow_ids_override:
+        body["workflow_ids_override"] = workflow_ids_override
+    if email_ids:
+        body["email_ids"] = email_ids
     if run_context:
         body["run_context"] = run_context
     if project_id:
@@ -2199,7 +2311,7 @@ def august_create_pre_share_policy(
         condition_value: The org ID, email, or domain to match against.
         artifacts: List of items to share. Each dict needs artifact_type + artifact_id
             (camelCase artifactType/artifactId also accepted). artifact_type is one of
-            'project', 'folder', 'workflow'.
+            'project', 'folder', 'workflow', 'prompt'.
             Example: [{"artifact_type": "workflow", "artifact_id": "abc-123"}]
         delivery_mode: 'share' (give access to original) or 'duplicate' (copy per user). Default 'share'.
         permission_level: 'owner', 'editor', or 'viewer'. Default 'viewer'.
@@ -2382,6 +2494,9 @@ def august_upload_file(
     content_text: Optional[str] = None,
     content_base64: Optional[str] = None,
     content_type: str = "text/plain",
+    password: Optional[str] = None,
+    source_preference: Optional[str] = None,
+    archive_format: Optional[str] = None,
 ) -> str:
     """[August Platform] Upload a file into an August folder. Runs the full two-step
     upload flow server-side: POST /uploads/sign -> PUT bytes to the presigned URL ->
@@ -2398,8 +2513,16 @@ def august_upload_file(
         content_base64: File content as base64 (for binary formats).
         content_type: MIME type of the content (default "text/plain"; use e.g.
                       "application/pdf" for PDFs).
+        password: Decryption password for a password-protected (encrypted) PDF.
+        source_preference: How to extract text — 'auto' (default server-side),
+                      'native_only' (embedded text layer only) or 'image_only'
+                      (force OCR).
+        archive_format: Pass 'production' to register the upload as a production
+                      archive. Only 'production' is accepted.
 
-    Returns the register result: {ok, docId, status} on success or {ok: false, error}."""
+    Returns {ok, docId, status} on success, or {ok: false, error} if August rejected
+    the file. IMPORTANT: a rejected file still comes back as HTTP 200 — always check
+    `ok` before treating the upload as done."""
     import base64 as _b64
     if (content_text is None) == (content_base64 is None):
         raise ValueError("Pass exactly one of content_text or content_base64.")
@@ -2412,20 +2535,33 @@ def august_upload_file(
     put = httpx.put(signed["url"], content=data, headers={"Content-Type": content_type}, timeout=120)
     put.raise_for_status()
 
-    registered = _aug_post(
-        "/api/v1/uploads/register",
-        {
-            "files": [
-                {
-                    "bucket": signed["bucket"],
-                    "key": signed["key"],
-                    "fileName": file_name,
-                    "folderId": folder_id,
-                    "fileSize": len(data),
-                }
-            ]
-        },
-    )
+    entry: dict[str, Any] = {
+        "bucket": signed["bucket"],
+        "key": signed["key"],
+        "fileName": file_name,
+        "folderId": folder_id,
+        "fileSize": len(data),
+    }
+    # /uploads/sign mints an uploadAttemptId; passing it back lets August tie the
+    # registration to the signed attempt.
+    if signed.get("uploadAttemptId"):
+        entry["uploadAttemptId"] = signed["uploadAttemptId"]
+    if password is not None:
+        entry["password"] = password
+    if source_preference is not None:
+        entry["sourcePreference"] = source_preference
+    if archive_format is not None:
+        entry["archiveFormat"] = archive_format
+
+    registered = _aug_post("/api/v1/uploads/register", {"files": [entry]})
+
+    # /uploads/register answers HTTP 200 even when a file is rejected: each element of
+    # `files` is a discriminated union on `ok` — {ok: true, docId, status, zipUpload?}
+    # or {ok: false, error}. Unwrap our single entry so the caller sees `ok`/`docId` at
+    # the top level instead of a nested envelope that always looks like a success.
+    files = registered.get("files") if isinstance(registered, dict) else None
+    if isinstance(files, list) and len(files) == 1 and isinstance(files[0], dict):
+        return json.dumps(files[0], indent=2)
     return json.dumps(registered, indent=2)
 
 
@@ -2455,6 +2591,11 @@ def august_search_content(
         top_k: Maximum number of matching chunks to return (1–100, default 10).
 
     Returns ranked matching chunks with document references and highlighted snippets."""
+    # DO NOT "fix" the scoping warning above to match openapi.json. The published spec
+    # marks folderIds/docIds optional with `default: []`, but August's backend rejects an
+    # unscoped content search at runtime ("At least one of folder_ids or doc_ids must be
+    # provided" — apps/backend/app/services/content_search.py). The docstring is correct;
+    # the spec is what's under-documented.
     body: dict[str, Any] = {"q": q, "topK": top_k}
     if folder_ids:
         body["folderIds"] = folder_ids
