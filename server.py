@@ -2498,12 +2498,30 @@ def august_upload_file(
     source_preference: Optional[str] = None,
     archive_format: Optional[str] = None,
 ) -> str:
-    """[August Platform] Upload a file into an August folder. Runs the full two-step
-    upload flow server-side: POST /uploads/sign -> PUT bytes to the presigned URL ->
-    POST /uploads/register.
+    """[August Platform] Upload a SMALL file into an August folder by passing its content
+    inline. Runs the full flow server-side: POST /uploads/sign -> PUT bytes to the
+    presigned URL -> POST /uploads/register.
 
     Pass exactly one of content_text (plain text) or content_base64 (base64-encoded
-    binary, e.g. for PDF/DOCX). Single-part uploads only (~25MB max).
+    binary, e.g. for PDF/DOCX).
+
+    SIZE LIMIT — READ THIS BEFORE UPLOADING BINARY:
+    August's server accepts single-part uploads up to ~25MB, but that is NOT the limit
+    that applies to you. Content passed here has to be written out as tool-call
+    arguments, so it is spent from the per-message output budget. Base64 also inflates
+    the payload ~1.37x and tokenizes poorly (~3 chars/token), so a 300KB PDF becomes
+    ~400K characters ≈ 120K+ tokens — far past the per-message ceiling. The call gets
+    truncated mid-string and silently registers a CORRUPT file.
+
+    Practical ceiling for this tool: ~50-100KB of binary (content_base64), or a few
+    hundred KB of plain text (content_text). It cannot be worked around by chunking:
+    there is no append mode and no state between calls.
+
+    For anything larger — and for ALL scanned/image-heavy PDFs — use the three-step
+    presigned flow instead, which never routes the bytes through the model:
+        1. august_create_upload_url(...)   -> returns a presigned PUT url
+        2. run its `put_command` in a shell (curl streams the file straight from disk)
+        3. august_register_upload(...)     -> returns {ok, docId, status}
 
     Args:
         file_name: The file name to create (e.g. "notes.txt", "contract.pdf").
@@ -2563,6 +2581,176 @@ def august_upload_file(
     if isinstance(files, list) and len(files) == 1 and isinstance(files[0], dict):
         return json.dumps(files[0], indent=2)
     return json.dumps(registered, indent=2)
+
+
+# ── Uploads: presigned flow (for files too large to pass inline) ─────────────
+#
+# august_upload_file forces the bytes through the model's output budget, which caps
+# it at ~50-100KB of binary regardless of the server's real ~25MB limit. These two
+# tools expose the sign and register steps separately so the PUT can be performed
+# out-of-band — the caller streams the file from disk with curl and the bytes never
+# enter the model context. This is the only route that works for scanned or
+# image-heavy PDFs.
+#
+# Note the PUT needs no August credentials: the url returned by /uploads/sign is
+# presigned and carries its own authorization. Only sign and register are
+# authenticated, and both happen inside these tools.
+
+@mcp.tool()
+def august_create_upload_url(
+    file_name: str,
+    content_type: str,
+    file_size: Optional[int] = None,
+    expires_in_seconds: Optional[int] = None,
+    upload_batch_id: Optional[str] = None,
+) -> str:
+    """[August Platform] Step 1 of 3 of the large-file upload flow: mint a presigned URL
+    to PUT a file's bytes directly to storage, bypassing the model context entirely.
+    Use this instead of august_upload_file for anything over ~50KB of binary.
+
+    Full flow:
+        1. august_create_upload_url(...)  -> {url, bucket, key, uploadAttemptId, put_command}
+        2. Run the returned `put_command` in a shell. It streams the file straight
+           from disk with curl — nothing passes through the conversation.
+        3. august_register_upload(...)    -> {ok, docId, status}
+           Pass back the bucket, key and uploadAttemptId from step 1.
+
+    The file is NOT in August until step 3 succeeds — an uploaded-but-unregistered
+    object is invisible in the UI. Always complete all three steps.
+
+    Args:
+        file_name: The file name to create (e.g. "invoice-88459.pdf").
+        content_type: MIME type, e.g. "application/pdf". The PUT in step 2 must send
+                      this exact same Content-Type header or the presigned URL will
+                      reject it — `put_command` already includes it.
+        file_size: Size in bytes, if known.
+        expires_in_seconds: How long the URL stays valid (max 604800 = 7 days).
+                      Defaults to the server's own expiry. Raise it if a large
+                      transfer might outlive the default.
+        upload_batch_id: Optional shared id to group several files into one batch;
+                      pass the same value here and to august_register_upload.
+
+    Returns the signing result plus a ready-to-run `put_command` — substitute the real
+    local path for the placeholder before running it."""
+    import shlex as _shlex
+    body: dict[str, Any] = {"contentType": content_type, "fileName": file_name}
+    if file_size is not None:
+        body["fileSize"] = file_size
+    if expires_in_seconds is not None:
+        body["expiresInSeconds"] = expires_in_seconds
+    if upload_batch_id is not None:
+        body["uploadBatchId"] = upload_batch_id
+
+    signed = _aug_post("/api/v1/uploads/sign", body)
+
+    out = dict(signed)
+    out["put_command"] = (
+        "curl -sS -X PUT "
+        f"-H {_shlex.quote('Content-Type: ' + content_type)} "
+        f"--upload-file {_shlex.quote('/path/to/' + file_name)} "
+        f"{_shlex.quote(signed.get('url', ''))}"
+    )
+    out["next_step"] = (
+        "Run put_command (with the real local path), then call august_register_upload "
+        f"with bucket={signed.get('bucket')!r}, key={signed.get('key')!r}"
+        + (f", upload_attempt_id={signed['uploadAttemptId']!r}" if signed.get("uploadAttemptId") else "")
+        + " and the destination folder_id."
+    )
+    return json.dumps(out, indent=2)
+
+@mcp.tool()
+def august_register_upload(
+    folder_id: str,
+    bucket: Optional[str] = None,
+    key: Optional[str] = None,
+    file_name: Optional[str] = None,
+    file_size: Optional[int] = None,
+    upload_attempt_id: Optional[str] = None,
+    password: Optional[str] = None,
+    source_preference: Optional[str] = None,
+    archive_format: Optional[str] = None,
+    files: Optional[List[dict]] = None,
+    upload_batch_id: Optional[str] = None,
+) -> str:
+    """[August Platform] Step 3 of 3 of the large-file upload flow: register bytes that
+    have already been PUT to a presigned URL, so August ingests them as a document.
+    Nothing appears in the folder until this succeeds.
+
+    Single file — pass the flat args (bucket, key, file_name from
+    august_create_upload_url). Multiple files — pass `files`, a list of dicts each with
+    bucket, key, fileName (or file_name) and optionally folderId, fileSize,
+    uploadAttemptId, password, sourcePreference, archiveFormat. Registering a batch in
+    one call is much faster than one call per file.
+
+    Args:
+        folder_id: Destination folder id. Used for every entry that doesn't set its own.
+        bucket / key: From the august_create_upload_url response.
+        file_name: The file name to create.
+        file_size: Size in bytes, if known.
+        upload_attempt_id: The uploadAttemptId from august_create_upload_url, which ties
+                      the registration back to the signed attempt.
+        password: Decryption password for a password-protected (encrypted) PDF.
+        source_preference: 'auto', 'native_only' (embedded text only) or 'image_only'
+                      (force OCR). Use 'image_only' for scanned documents.
+        archive_format: Pass 'production' to register as a production archive.
+        files: Batch mode — a list of per-file dicts, as described above.
+        upload_batch_id: Optional batch id shared with august_create_upload_url.
+
+    Returns {ok, docId, status} for a single file, or {files, ok_count, failed_count}
+    for a batch. IMPORTANT: August answers HTTP 200 even when it REJECTS a file — each
+    entry is {ok: true, docId, status} or {ok: false, error}. Always check `ok` before
+    treating an upload as done."""
+    _ALIASES = {
+        "file_name": "fileName", "file_size": "fileSize", "folder_id": "folderId",
+        "upload_attempt_id": "uploadAttemptId", "source_preference": "sourcePreference",
+        "archive_format": "archiveFormat", "checksum_crc64": "checksumCrc64",
+    }
+    _ALLOWED = {
+        "bucket", "key", "fileName", "folderId", "password", "fileSize",
+        "uploadAttemptId", "archiveFormat", "sourcePreference", "checksumCrc64",
+    }
+
+    def _entry(raw: dict) -> dict:
+        # Accept snake_case or camelCase from the caller; the API wants camelCase.
+        e = {_ALIASES.get(k, k): v for k, v in raw.items() if v is not None}
+        unknown = set(e) - _ALLOWED
+        if unknown:
+            raise ValueError(f"Unknown per-file field(s): {sorted(unknown)}")
+        e.setdefault("folderId", folder_id)
+        missing = [k for k in ("bucket", "key", "fileName", "folderId") if not e.get(k)]
+        if missing:
+            raise ValueError(f"Each file needs bucket, key, fileName, folderId — missing {missing}.")
+        return e
+
+    if files:
+        entries = [_entry(f) for f in files]
+        batched = True
+    else:
+        entries = [_entry({
+            "bucket": bucket, "key": key, "file_name": file_name, "file_size": file_size,
+            "upload_attempt_id": upload_attempt_id, "password": password,
+            "source_preference": source_preference, "archive_format": archive_format,
+        })]
+        batched = False
+
+    body: dict[str, Any] = {"files": entries}
+    if upload_batch_id is not None:
+        body["uploadBatchId"] = upload_batch_id
+
+    registered = _aug_post("/api/v1/uploads/register", body)
+
+    # HTTP 200 does not mean success — unwrap the per-file discriminated union on `ok`
+    # so a rejection cannot be mistaken for a completed upload.
+    result = registered.get("files") if isinstance(registered, dict) else None
+    if not isinstance(result, list):
+        return json.dumps(registered, indent=2)
+    if not batched and len(result) == 1 and isinstance(result[0], dict):
+        return json.dumps(result[0], indent=2)
+    ok_count = sum(1 for f in result if isinstance(f, dict) and f.get("ok"))
+    return json.dumps(
+        {"files": result, "ok_count": ok_count, "failed_count": len(result) - ok_count},
+        indent=2,
+    )
 
 
 # ── Content Search ──────────────────────────────────────────────────────────
