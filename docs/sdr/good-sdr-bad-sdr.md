@@ -1,149 +1,165 @@
-# Good SDR, Bad SDR
+# 1 · Good SDR, Bad SDR
 
-*An August internal standard. Modeled on Ben Horowitz's "Good Product Manager, Bad Product Manager."*
+*Mirror of the [Notion page](https://app.notion.com/p/3a99073ab18781979d31ec94f8e65f63). Part of [SDR Onboarding](./README.md).*
 
----
+> **This is the job, written down.** It is what you are measured against, and it is what your manager is measured against in teaching it to you.
+>
+> Read it in week one. Read it again at day 30, day 60 and day 90. Your one-to-ones are structured against these pairs, so they should never feel like new information.
 
-## Why this document exists
+## Why this page exists
 
-Horowitz wrote the original as a training tool, not a manifesto. His argument in *Why Startups Should Train Their People* is that functional training exists to **set expectations**, and that the manager — not HR, not a vendor — has to deliver it. His test for whether you were fair to someone you fired is brutal and correct: *"How did you know with certainty that the employee both understood the expectations?"*
+Ben Horowitz wrote *Good Product Manager, Bad Product Manager* as a training tool. It was never meant to be inspirational. It was a way for a manager to say, in writing and in advance, here is what good looks like, so that nobody could later claim they did not know.
 
-We failed that test once already. When Spencer left in January, the post-mortem named three causes: onboarding and management of the SDR role were not thought through, there was a mismatch between the role as described and what the job actually required week to week, and the automation work either should have been explicitly in the role description or should have been built before he joined.
+He has a test for whether you were fair to someone you let go. *How did you know with certainty that the employee both understood the expectations?* If you cannot answer that, the failure belongs to the manager.
 
-This document is the fix. It is the written definition of the job. It is what you are measured against, and it is what your manager is measured against in teaching you.
+We have failed that test here before. When our first SDR left, the honest post-mortem said three things. The role had not been thought through. What we described in the interview did not match what the job actually required week to week. And the automation side of the work should have either been in the job description or built before he arrived.
 
-**Read it on day one. Re-read it at day 30, 60, and 90.**
-
----
+This page is the correction. Everything below is the job. If something in it surprises you, that is a problem to raise now rather than at a review.
 
 ## The frame
 
 **A good SDR is the CEO of their territory.**
 
-Good SDRs take full responsibility for the meetings on the board. They know the market, the product, the roadmap, and the competition extremely well, and they operate from a strong basis of knowledge and confidence.
+You own a set of firms. Nobody else is going to look at them, think about them, or decide what happens to them. What comes out of that territory is yours.
 
-Bad SDRs have lots of excuses. The list is not enriching. Marketing isn't sending leads. The AEs aren't taking my meetings. Nobody picks up in August. Legal is a slow industry. Harvey has more brand.
+Good SDRs take that seriously. They know their market, their product, their roadmap and their competition well enough to have opinions, and they work from confidence rather than from a script.
 
-Every one of those may be true. None of them is your manager's problem to solve for you.
+Bad SDRs have a long list of reasons. The enrichment is bad. Marketing is not sending anything. The AEs are slow to take meetings. Nobody picks up in August. Legal moves slowly. Harvey has more brand.
+
+Every one of those can be true at the same time. None of them is your manager's problem to solve on your behalf.
 
 ---
 
-## Ownership and accountability
+## Ownership
 
-**Good SDRs define their own success metric and then hit it.** Bad SDRs constantly want to be told what to do.
+**Good SDRs decide what success looks like this month and then hit it.** Bad SDRs wait to be told what to work on.
 
-**Good SDRs own the number.** A qualified lead at August is someone who sits for a demo or moves past discovery — not a calendar invite that no-show'd, not a "sure, send me something." Bad SDRs count activity and hope it converts.
+**Good SDRs own the number honestly.** A qualified meeting here means someone sat for a demo or moved past discovery. A calendar invite that no-showed is not one. A *sure, send me something* is not one. Bad SDRs count activity and hope it turns into something.
 
-**Good SDRs know their territory's math**: how many accounts exist, how many are touchable this quarter, what conversion rate turns dials into demos, and therefore how many dials the number actually requires. Bad SDRs dial until they're tired.
+**Good SDRs know the arithmetic of their own territory.** How many firms exist in it, how many are genuinely reachable this quarter, what share of conversations become meetings, and therefore how much work the number actually takes. Bad SDRs dial until they are tired and call that effort.
 
-**Good SDRs escalate early and specifically**: "Muckle went dark after the security review, here's the thread, I need Neil for ten minutes." Bad SDRs let a deal rot quietly and mention it in a retro.
+**Good SDRs escalate early and specifically.** *Muckle went quiet after the security questions came up, here is the thread, I need Neil for ten minutes.* Bad SDRs let a live thread go cold and mention it in a retro three weeks later.
 
-**Good SDRs make the AE's job easier.** The handoff includes the pain, the trigger, the stack, the people, and the objection you already heard. Bad SDRs hand off a name and a time.
+**Good SDRs make the AE's job easier.** The handoff carries the pain, the trigger, the stack, the people in the room and the objection you already heard. Bad SDRs hand over a name and a time and consider it done.
 
 ---
 
 ## Knowing the market
 
-**Good SDRs can explain how a law firm actually makes money** — billable hours, realization rates, leverage ratios, why a managing partner cares about throughput and a CIO cares about ethical walls. Bad SDRs pitch "AI for lawyers" to whoever answers.
+**Good SDRs can explain how a law firm makes money.** Billable hours, realisation, leverage, why a managing partner cares about throughput and a CIO cares about who can see which matter. Bad SDRs pitch AI for lawyers to whoever answers.
 
-**Good SDRs know the difference between selling to a 30-lawyer regional firm and an AmLaw 100.** One has a managing partner who is the buyer, the user, and the budget. The other has a CIO, an innovation committee, a security review, and a twelve-month cycle. Bad SDRs use the same email for both.
+**Good SDRs know that a twenty-lawyer regional firm and an AmLaw 100 are two different businesses.** At one, the managing partner is the buyer, the user and the budget. At the other there is a CIO, an innovation committee, a security review and a year-long cycle. Bad SDRs send both the same email.
 
-**Good SDRs know the competitive set cold** — Harvey, Legora, Hebbia, Spellbook, Robin AI, GC AI, Vincent (vLex, now Clio), Irys — and can say in one sentence why a firm picks August. Bad SDRs learn competitor names for the first time on a live call.
+**Good SDRs know the competitive set well enough to be relaxed about it.** Harvey, Legora, Hebbia, Spellbook, Robin AI, GC AI, Wordsmith, Vincent at vLex. Bad SDRs hear a competitor's name on a call for the first time.
 
-**Good SDRs know that a large share of our best current opportunities are firms that bought Harvey in 2024 and are up for renewal, disappointed.** That is a trigger, and they hunt for it. Bad SDRs treat "they already have AI" as a disqualification.
+**Good SDRs treat a firm that already bought AI in 2024 as a lead rather than a dead end.** A lot of those firms are up for renewal and quietly disappointed, and disappointment is the most useful trigger we have. Bad SDRs hear *we already have something* and mark it closed.
 
-**Good SDRs assume the partner on the other end of the phone is smarter than they are and has less time.** Bad SDRs assume lawyers don't understand technology.
+**Good SDRs assume the partner on the phone is smarter than they are and has less time.** Bad SDRs assume lawyers do not understand technology.
 
 ---
 
 ## Knowing the product
 
-**Good SDRs use August every day.** They have run a Tabular Review, built a Workflow, run a Playbook against a real contract, and watched Genius Mode do something that surprised them. Bad SDRs have watched the demo video.
+**Good SDRs use August every day.** They have run a Tabular Review, built an agent, run a Playbook against a real contract, and watched Genius Mode do something that genuinely surprised them. Bad SDRs have watched the demo video.
 
-**Good SDRs can name what is live, what is in development, and what is on the roadmap — and they never blur the three.** The Clio Manage integration is in development. iManage phase one is pick-and-select, not full indexing. E-discovery and governance controls are roadmap. Bad SDRs promise the roadmap to book the meeting, and CS pays for it at implementation.
+**Good SDRs use the words we use.** They are agents, not workflows. We renamed them in July for a reason, and the reason is the whole thesis. A workflow is something a person runs. An agent is something that runs. Bad SDRs use last year's vocabulary and quietly undersell the product while doing it.
 
-**Good SDRs can tell the Hughes Hubbard story, the Harrison Drury story, and the Hicksons story from memory**, including what the firm looked like before, what changed, and who said so on the record. Bad SDRs send a PDF link.
+**Good SDRs keep live, in development and roadmap in three separate boxes and never blur them.** Bad SDRs promise the roadmap to book the meeting, and our CS team pays for it at implementation. The sentence you are allowed to say is *that is on the roadmap and I will get you a real timeline from the team*. The sentence you are not allowed to say is *yes, we do that*.
 
-**Good SDRs lead with the specific workflow that matters to that prospect's practice** — lease abstraction for a real estate group, demand letters for a PI shop, office action scaffolding for a patent boutique. Bad SDRs lead with "700+ prebuilt workflows."
+**Good SDRs lead with the one thing that matters to that firm's practice.** Lease abstraction for a real estate group. Demand letters for a personal injury shop. Office action scaffolding for a patent boutique. Bad SDRs lead with the size of the library.
 
-**Good SDRs can explain the FDE model in one sentence and why it is the reason firms pick us over an orchestration layer.** Bad SDRs recite the feature list.
+**Good SDRs never open with a feature list, because every serious competitor has a similar one.** Nobody buys because you recited parity. They buy because you described their week back to them accurately. Bad SDRs read the capability grid out loud and wonder why the call went flat.
+
+**Good SDRs can say in one sentence why a firm picks us over a tool that sits on top of a model.** Bad SDRs try to win on features against companies with more of them.
 
 ---
 
-## Targeting and list building
+## Knowing where your job stops
 
-**Good SDRs build lists from a thesis.** "Firms that use iManage, 10–50 lawyers, in the UK North West, within reach of the Harrison Drury reference." Bad SDRs export whatever ZoomInfo returns for "law firm."
+**Good SDRs sell step one and mean it.** The platform, the seats, the first real piece of work that stops taking two days. That is the entire conversation you are having, and it is the conversation that every single one of our customers started with. Bad SDRs try to open with the ending.
 
-**Good SDRs treat a partner's own website as a prospecting tool** — the law firm logos and references on iManage, NetDocuments, Lawmatics, and Clio pages are their customers, which makes them integration-qualified for us. Bad SDRs wait for the partner to send a lead.
+**Good SDRs can gesture at where this goes without trying to get there.** *The firms we work with usually start with the platform, and a few of them end up building client-facing products on top of it* is a good sentence. It makes a partner curious and it tells him we are not a tool vendor. Bad SDRs bring up joint ventures and revenue share on a first call and spend the rest of it explaining that we are not trying to buy his firm.
 
-**Good SDRs prune.** A list of 60 firms they can genuinely personalize beats 600 they cannot. Bad SDRs measure themselves by the size of the list.
+**Good SDRs hand the bigger conversation up with the context that makes it credible.** Which practice group is under margin pressure, what the partner said about growth, who actually runs the firm. Bad SDRs mention that the partner *seemed interested in the JV thing* and leave the AE to start from nothing.
 
-**Good SDRs check Attio and HubSpot before they touch an account** — closed-lost, prior conference contacts, and dormant threads are the warmest cold outreach that exists. Bad SDRs cold-email a firm an AE talked to last month.
+---
 
-**Good SDRs know which segments to stay away from without help.** Appellate boutiques are AI-skeptical and only respond to the founding partner angle. White collar defense wants security first or nothing. Bad SDRs run the same sequence into every segment and wonder why the reply rate is 0.4%.
+## Targeting
+
+**Good SDRs build lists from a thesis.** *Firms using iManage, ten to fifty lawyers, in the North West, close enough to Harrison Drury that the reference actually lands.* Bad SDRs export whatever the tool returns for law firm.
+
+**Good SDRs treat a partner's own website as a prospecting tool.** The firms named on the iManage, NetDocuments, Lawmatics and Clio sites are their customers, which makes them qualified for us before we have said a word. Bad SDRs wait for a partner to send a lead over.
+
+**Good SDRs prune.** Sixty firms you can say something specific to will beat six hundred you cannot. Bad SDRs measure themselves by the size of the list.
+
+**Good SDRs check Attio and HubSpot before touching an account.** Closed-lost, old conference contacts and dormant threads are the warmest cold outreach that exists. Bad SDRs email a firm an AE spoke to last month.
+
+**Good SDRs know which segments to leave alone without being told twice.** Appellate boutiques are sceptical and only respond to the founder angle. White collar defence wants the security conversation first or nothing at all. Bad SDRs run one sequence into everything and wonder why the reply rate is nothing.
 
 ---
 
 ## Messaging
 
-**Good SDRs write like a person who read something about the firm this morning.** Bad SDRs write like a template with a merge field.
+**Good SDRs write like someone who read something about the firm this morning.** Bad SDRs write like a template with a merge field in it.
 
-**Good SDRs make personalization load-bearing** — the specific thing they found has to be the *reason* for the email, not a decorative first line before an unchanged pitch. Bad SDRs paste a LinkedIn post into `{{icebreaker}}`.
+**Good SDRs make the personalisation load-bearing.** The specific thing you found has to be the reason for the email. If you could delete the first line and the rest still made sense, you have decorated a template. Bad SDRs paste a LinkedIn post into the opener and change nothing else.
 
-**Good SDRs use the nearest reference.** A Preston firm hears about Harrison Drury. A Sydney firm hears about Hicksons. A São Paulo firm hears about Lobo de Rizzo. A US regional full-service firm hears about Hughes Hubbard — and *only* if it actually matches that profile. Bad SDRs open every email with Hughes Hubbard because it's the biggest logo.
+**Good SDRs write to the ambition, not to the anxiety.** Firms are not buying a tool that will avoid embarrassing them. They are buying something that lets them show a client they are already a modern firm. Bad SDRs sell efficiency to people who bill by the hour and cannot work out why it does not land.
 
-**Good SDRs write one clear ask.** Bad SDRs write four paragraphs and ask the prospect to pick a time, forward it internally, and check out the website.
+**Good SDRs use the nearest reference.** A Preston firm hears about Harrison Drury. A Sydney firm hears about Hicksons. A São Paulo firm hears about Lobo de Rizzo. Bad SDRs open every email with the biggest logo we have.
 
-**Good SDRs take written positions.** When a segment isn't working, they write down what they tried, what happened, and what they'd change, and post it in `#sales`. Bad SDRs voice their opinion verbally and lament.
+**Good SDRs make one clear ask.** Bad SDRs write four paragraphs and ask the reader to pick a time, forward it internally and have a look at the website.
 
-**Good SDRs err on the side of clarity over cleverness.** Bad SDRs try to be memorable and end up being ignored.
+**Good SDRs take written positions.** When a segment stops working they write down what they tried, what happened and what they would change, and they post it where the team can see it. Bad SDRs say it out loud in a stand-up and it disappears.
+
+**Good SDRs choose clear over clever.** Bad SDRs try to be memorable and end up being deleted.
 
 ---
 
 ## The phone
 
-**Good SDRs make the call block sacred.** It is on the calendar, it is protected, and it happens whether or not they feel like it. Bad SDRs dial when the inbox is empty, which is never.
+**Good SDRs make the call block sacred.** It is on the calendar, it is defended, and it happens whether or not they feel like it that morning. Bad SDRs dial when the inbox is empty, which is never.
 
-**Good SDRs have a one-line pitch they can deliver in under fifteen seconds** and can flex it to a litigator, a corporate associate, or a COO without missing a beat. Bad SDRs need a paragraph to get started.
+**Good SDRs have an opener they can deliver in fifteen seconds** and can flex it for a litigator, a corporate associate or a COO without pausing. Bad SDRs need a paragraph to get going.
 
-**Good SDRs ask questions.** Horowitz's line about the press applies exactly to discovery: good ones ask, bad ones answer everything they're asked. Bad SDRs talk through the entire pitch to someone who never told them what hurts.
+**Good SDRs ask questions.** Horowitz's line about good press people applies exactly to discovery. The good ones ask, the bad ones answer everything they are asked. Bad SDRs deliver the whole pitch to someone who never told them what hurts.
 
-**Good SDRs handle the objection they'll hear most — "we already use Harvey" — as an opening.** Bad SDRs hear it as a close.
+**Good SDRs treat *we already use Harvey* as the beginning of the conversation.** Bad SDRs treat it as the end of it.
 
-**Good SDRs listen back to their own calls in Gong before anyone else has to.** Bad SDRs wait for coaching.
+**Good SDRs listen back to their own calls before anyone else has to.** Bad SDRs wait to be coached.
 
 ---
 
-## Systems and leverage
+## Systems
 
-**Good SDRs think like engineers.** When they do something three times, they build the thing that does it — a Claude skill, a Clay table, an Amplemarket sequence, a HubSpot view — and they publish it so the rest of the team gets it for free. Bad SDRs do it by hand four hundred times and call it hustle.
+**Good SDRs think like engineers.** When they have done something three times they build the thing that does it, and then they publish it so the rest of the team gets it for free. Bad SDRs do it by hand four hundred times and call it work ethic.
 
-**Good SDRs create leverageable collateral**: the objection doc, the segment brief, the call opener that worked. Bad SDRs complain that they spend all day answering the same questions.
+**Good SDRs create things other people can use.** The objection note, the segment brief, the opener that worked. Bad SDRs complain about answering the same question every week.
 
-**Good SDRs anticipate the flaw in the sequence before it burns the list** — the broken merge field, the wrong segment, the claim we can't support. Bad SDRs put out fires all day.
+**Good SDRs spot the flaw in a sequence before it burns the list.** The broken merge field, the wrong segment, the claim we cannot actually support. Bad SDRs spend the day putting out fires they lit.
 
-**Good SDRs treat automation as part of the job, because at August it is.** Bad SDRs treat it as something someone else was supposed to build for them.
+**Good SDRs treat automation as part of this job, because here it is.** Bad SDRs treat it as something somebody else was supposed to have built for them.
 
 ---
 
 ## Discipline
 
-**Good SDRs log everything in HubSpot the day it happens.** If it isn't logged, it didn't happen. Bad SDRs reconstruct the week on Friday afternoon.
+**Good SDRs log it the day it happens.** If it is not in the system it did not happen. Bad SDRs reconstruct the week on Friday afternoon and get it wrong.
 
-**Good SDRs send their standup and their weekly number on time every week, because they are disciplined.** Bad SDRs forget, and then explain.
+**Good SDRs send the stand-up and the weekly number on time, every week, because they are disciplined.** Bad SDRs forget, and then explain.
 
-**Good SDRs ask in public.** They post the question in `#sales` so the answer compounds for everyone. Bad SDRs DM three people separately and get three different answers.
+**Good SDRs ask in public** so that the answer compounds for everybody. Bad SDRs send three separate direct messages and get three different answers.
 
-**Good SDRs pause when the task is ambiguous and resolve the ambiguity before starting.** Bad SDRs guess, build the wrong list, and lose a week.
+**Good SDRs stop when a task is ambiguous and resolve it before starting.** Bad SDRs guess, build the wrong list and lose a week.
 
 **Good SDRs are honest about a bad week on Wednesday.** Bad SDRs are honest about it on the last day of the month.
 
 ---
 
-## The one-line test
+## The weekly test
 
-At the end of every week, answer this in writing:
+Every Friday, answer this in writing. Two sentences is plenty.
 
-> **How many firms are meaningfully closer to a demo because I worked this week, and what did I learn that the rest of the team doesn't know yet?**
+> **How many firms are meaningfully closer to a real conversation because I worked this week, and what did I learn that nobody else here knows yet?**
 
-If you can answer both halves specifically, it was a good week. If you can only answer the first, you're producing but not compounding. If you can't answer either, say so on Wednesday, not Friday.
+Answer both halves specifically and it was a good week. Answer only the first and you are producing without compounding. Answer neither and say so on Wednesday, not on Friday.
