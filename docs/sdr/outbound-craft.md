@@ -4,39 +4,45 @@
 
 > **This page is how you actually say it.** The message, the email, the call, the sequence.
 >
-> Everything here assumes you have read the company onboarding. If you have not, the messages below will read as a set of tricks rather than as the natural consequence of what we believe.
+> Everything here assumes you've read the company onboarding. If you haven't, the messages below will read as a set of tricks rather than as the natural consequence of what we believe.
 
 ## The mistake almost every legal tech email makes
 
 Most outbound to law firms sells time savings. Cut research from four hours to forty minutes. Draft the first version in seconds. Free your associates up for higher value work.
 
-Think about who is reading that. A partner whose firm bills by the hour. You have just offered to reduce his revenue and asked him to pay for the privilege. He will not argue with you about it. He will simply not reply.
+Think about who's reading that. A partner whose firm bills by the hour. You've just offered to reduce his revenue and asked him to pay for the privilege. He won't argue with you about it, he'll simply not reply.
 
-There is a version of this that is worse. Selling reassurance. Positioning the product as the safe option, the one that will not embarrass them, the one with the guardrails. That is a message about avoiding downside, and no managing partner has ever moved budget to avoid a downside he was not already worried about.
+## The two things a partner is actually worried about
 
-## What actually moves a partner
+You almost never have to convince a partner that AI matters. He knows. His clients have asked, his competitors are talking about it, and he's read the same things you have. Most of the partners you reach have already decided they're buying something this year.
 
-Firms are competing for clients who are themselves under pressure to look modern. When a general counsel picks between two firms with similar reputations and similar rates, something has to break the tie. Increasingly that something is which firm looks like it is built for how work gets done now.
+So stop selling the category and write to one of the two worries he already has.
 
-So the thing a partner wants is not a faster associate. It is something he can show a client. A way of demonstrating, in a pitch, that his firm already works differently.
+**One. The money won't turn into anything.** This is the bigger of the two and almost nobody writes to it. Most managing partners have either bought an AI tool that nobody ended up using, or watched a firm down the road do exactly that. What he's defending against is another line item he has to justify at a partners' meeting with nothing to point at.
 
-That is the emotional centre of everything you write. You are offering a firm a way to be visibly ahead, in front of the people whose opinion determines whether they win work.
+Be careful about what this worry actually is. He isn't afraid the product will embarrass him in front of a client, and pitching safety and guardrails falls completely flat. He's afraid the money produces nothing he can show the partnership.
 
-The efficiency is real and you can mention it. It is just never the headline.
+That makes our implementation model the whole pitch rather than a detail at the end of it. Engineers on site, workshops with each practice group, agents built around their real matters, and a first cheque that produces something nameable. Say it plainly, because it's the thing our competitors genuinely don't do.
 
-> **The reframe, in one line.**
+**Two. The firm looks behind.** He's thinking about the pitch he'll lose next quarter, the client who has started asking what the firm is doing about AI, and the panel review where somebody puts that question in writing. He wants to walk into those rooms and say his firm is already AI-native, and he wants something real to point at when he does.
+
+That's a commercial worry rather than an operational one, and it changes how firms behave. Firms buying efficiency haggle over price. Firms buying a competitive signal move quickly.
+
+## And the thing that actually excites them
+
+Worries get you a reply. Growth gets you a meeting.
+
+Most firms have a category of work they turn away, because at their rates it doesn't pay. Small matters, high-volume matters, the sort of thing a client asks for as a favour. When the work runs, that maths changes, and the firm can serve clients it used to decline at prices it used to refuse.
+
+That's a growth conversation rather than a cost conversation, and partners engage with growth conversations. If you can find the work a firm turns away, you've found your opening line.
+
+> **The three angles, one line each.**
 >
-> Not *this will save your associates time*.
+> *Most firms that bought something last year still can't point at what changed.*
 >
-> Instead: *this is how the firms winning pitches right now are showing clients they work differently.*
-
-## Where growth comes into it
-
-The second thing that moves a partner is capacity he could not previously afford. Most firms have a category of work they turn away, because at their rates it does not pay. Small matters, high-volume matters, the sort of thing a client asks for as a favour.
-
-When the work runs, that maths changes. The firm can serve clients it used to decline, at prices it used to refuse. That is a growth conversation rather than a cost conversation, and partners engage with growth conversations.
-
-If you can find the work a firm turns away, you have found your opening line.
+> *This is how the firms winning pitches right now show clients they work differently.*
+>
+> *This is work you currently turn away that starts paying.*
 
 ---
 
@@ -46,13 +52,13 @@ Four parts. Nothing else.
 
 **One. The specific thing.** Something true about this firm that you found this morning. A lateral hire into a practice group. A new office. A client win they announced. A partner quoted in the trade press about the pressure on fees. It has to be recent and it has to be theirs.
 
-**Two. The bridge.** Why that thing means something for how they work. This is the sentence most people skip and it is the sentence that makes the email an argument rather than a coincidence.
+**Two. The bridge.** Why that thing means something for how they work. This is the sentence most people skip, and it's what makes the email an argument rather than a coincidence.
 
 **Three. The proof.** The nearest reference, in one line, with a number if you have one. Not a paragraph. Not a link to a PDF.
 
 **Four. One ask.** Fifteen minutes. A specific offer. Nothing else in the email.
 
-Here is the test. Delete the first line. If the rest of the email still makes complete sense, your personalisation was decoration and the email will not work. The specific thing has to be the reason the email exists.
+Delete the first line. If the rest of the email still makes complete sense, your personalisation was decoration and the email won't work. The specific thing has to be the reason the email exists.
 
 ---
 
@@ -64,7 +70,7 @@ Here is the test. Delete the first line. If the rest of the email still makes co
 >
 > Adrian,
 >
-> Someone at Broadfield spent a bit of time on our pricing this week, so I will save you the discovery call and give you the shape of it.
+> Someone at Broadfield spent a bit of time on our pricing this week, so I'll save you the discovery call and give you the shape of it.
 >
 > Firms at around thirty lawyers usually start with one practice group rather than the whole firm. Harrison Drury did exactly that, started in one team, and it went firm-wide within a few months once partners saw the output.
 >
@@ -80,7 +86,7 @@ Why it works. It acknowledges the signal without being creepy about it, answers 
 >
 > Kate,
 >
-> Saw Bermans on the iManage customer list. Most of the firms we work with came to us with the same problem after a few years on it. Everything is in there, and nobody can get anything useful out of it without opening forty documents by hand.
+> Saw Bermans on the iManage customer list. Most of the firms we work with came to us with the same problem after a few years on it. Everything's in there, and nobody can get anything useful out of it without opening forty documents by hand.
 >
 > We plug into what you already have and run against it. Harrison Drury are about your size, same setup, and their property team now runs lease reviews that used to take two days.
 >
@@ -96,31 +102,31 @@ Why it works. The integration is the reason for the email rather than a feature 
 >
 > James,
 >
-> Harrison Drury are about forty minutes from you and roughly your size. Their property team was turning away smaller lease work because at their rates it did not pay to do it.
+> Harrison Drury are about forty minutes from you and roughly your size. Their property team was turning away smaller lease work because at their rates it didn't pay to do it.
 >
-> They now run that work through agents their own lawyers built, and take instructions they used to decline. It is a growth story rather than a cost saving one, which is why I thought it was worth sending to you specifically.
+> They now run that work through agents their own lawyers built, and take instructions they used to decline. It's a growth story rather than a cost saving one, which is why I thought it was worth sending to you specifically.
 >
-> Fifteen minutes and I will walk you through exactly how they set it up.
+> Fifteen minutes and I'll walk you through exactly how they set it up.
 >
 > Rutvik
 
 Why it works. Proximity, size match, and a growth argument rather than an efficiency one. This is the highest performing shape we have.
 
-### The renewal-disappointment trigger
+### The adoption worry, and the renewal trigger
 
 > **Subject:** year two
 >
 > Sarah,
 >
-> Most firms that bought an AI tool in 2024 are now in the awkward part of year two, where the licence renews and nobody can point at anything that changed.
+> Most firms that bought an AI tool in 2024 are in the awkward part of year two now, where the licence renews and nobody can point at anything that changed.
 >
-> If that is roughly where you are, the useful conversation is not about a different chatbot. It is about what actually has to be true for a firm to get real work running rather than assisted.
+> If that's roughly where you are, the useful conversation isn't about a different chatbot. It's about what has to be true for a firm to actually get people using it. We send engineers in and build around the work your teams already do, which is the bit that usually gets skipped.
 >
 > Happy to have that conversation whether or not it goes anywhere with us. Fifteen minutes?
 >
 > Rutvik
 
-Why it works. It names the feeling before they do, and the offer is genuinely useful even if they never buy. That is the tone the whole consultative sale runs on.
+Why it works. It names the feeling before they do, it puts the adoption answer in the second paragraph where it belongs, and the offer is genuinely useful even if they never buy. That's the tone the whole consultative sale runs on.
 
 ---
 
@@ -130,18 +136,18 @@ Why it works. It names the feeling before they do, and the offer is genuinely us
 
 Fifteen seconds. Say who you are, say the specific thing, ask permission.
 
-> *James, it is Rutvik at August. I will be quick. We work with Harrison Drury down the road from you, and their property team is now taking on lease work they used to turn away. That is the whole reason I called. Do you have sixty seconds or should I try you another time?*
+> *James, it's Rutvik at August. I'll be quick. We work with Harrison Drury down the road from you, and their property team is now taking on lease work they used to turn away. That's the whole reason I called. Do you have sixty seconds or should I try you another time?*
 
-Asking permission is not politeness. It gives you a yes early in the call and it makes the rest of the conversation something they agreed to.
+Asking permission isn't politeness. It gives you a yes early in the call and it makes the rest of the conversation something they agreed to.
 
-### Then ask, do not tell
+### Then ask, don't tell
 
-The temptation is to fill the silence with the pitch. Do not. The whole point of the call is to find out what actually hurts, so that the meeting you book is about the right thing.
+The temptation is to fill the silence with the pitch. Don't. The whole point of the call is to find out what actually hurts, so that the meeting you book is about the right thing.
 
 Four questions that consistently open partners up:
 
 - *Which practice group is under the most pressure at the moment?*
-- *Is there work you turn away because it does not pay at your rates?*
+- *Is there work you turn away because it doesn't pay at your rates?*
 - *When a client asks what your firm is doing about AI, what do you tell them?*
 - *What happened with the last tool you looked at?*
 
@@ -151,7 +157,7 @@ The third one is the most useful question on this page. Almost every partner has
 
 **We already use something.** Good. That means you have already decided this matters, which puts you ahead of most firms. What is it doing for you day to day? Then listen, because the honest answer is usually *a few people use it for research*.
 
-**We are too small for this.** Ten to fifty lawyers is our sweet spot rather than our edge case. The firms getting the most out of this are the ones where a decision can be made in a room rather than a committee.
+**We're too small for this.** Ten to fifty lawyers is our sweet spot rather than our edge case. The firms getting the most out of this are the ones where a decision can be made in a room rather than a committee.
 
 **Send me something and I will look.** Happy to. Before I do, so I send the right thing rather than the general thing, which team is feeling it most? Then send exactly that, and only that.
 
@@ -159,7 +165,7 @@ Everything harder than these three lives on page six of the company onboarding. 
 
 ### What you never do on a call
 
-You do not talk about joint ventures, revenue share or holding companies. You do not promise a roadmap item. You do not read the capability list out loud. You do not oversell what the integration does today.
+You don't talk about joint ventures, revenue share or holding companies. You don't promise a roadmap item. You don't read the capability list out loud. You don't oversell what the integration does today.
 
 All four of these feel helpful in the moment and all four cost us the account later.
 
@@ -190,10 +196,10 @@ The last one gets more replies than anything in the middle. People respond to be
 
 The meeting is only worth something if the AE can walk into it prepared. Every handoff carries five things.
 
-1. **The pain.** In their words, not yours.
+1. **The pain.** In their words rather than yours.
 2. **The trigger.** Why now, this month.
 3. **The stack.** What they run and what they have already tried.
 4. **The people.** Who was on the call, who decides, who will object.
-5. **The objection you already heard.** So the AE is not surprised by it.
+5. **The objection you already heard.** So the AE isn't surprised by it.
 
-A handoff the AE has to ask follow-up questions about is an incomplete handoff, and it is tracked as one.
+A handoff the AE has to ask follow-up questions about is an incomplete handoff, and it's tracked as one.
