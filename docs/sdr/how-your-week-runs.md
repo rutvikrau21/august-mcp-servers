@@ -2,200 +2,280 @@
 
 *Mirror of the [Notion page](https://app.notion.com/p/3ac9073ab1878151a9b9c0138552efac). Part of [SDR Onboarding](./README.md).*
 
-> **This is the page you actually live in.** The other four tell you what to do and why. This one tells you when.
+> **This is the page you actually live in.** The other four tell you what to do and why. This one tells you what to do today.
 >
-> The test for this page is simple. You should never sit down at your desk and wonder what to work on. If you do, something here is broken and we want to know.
+> The test is simple. You should never sit down at your desk and wonder what to work on. If you do, something here is broken and we want to know.
 
 ## The shape of the whole thing
 
-Everything runs on **batches**. One new batch every Monday, and three batches live at any moment.
+**One theme a week. One list of firms behind it. An email sequence as the backbone, with LinkedIn and calls layered on top to make it personal.**
 
-A batch is a list of firms that belong together, built from one thesis, worked through the same three-week sequence. *Ten to fifty lawyer property firms in the North West on iManage, within reach of the Harrison Drury reference.* That's a batch. Forty firms, eighty contacts, one argument.
+Somebody hands you a list of firms on Monday. The sequence goes live Tuesday and runs itself from there. Your hours go into the personal touches, because that's what actually converts. Each list gets worked for two weeks, so at any point you have **two lists live**, this week's and last week's, while Monday builds the next one.
 
-So at any point in a normal week you have a batch in its first week, a batch in its second, and a batch in its third, plus a new one being built. The oldest one finishes on Friday and drops off, and the cycle repeats.
-
-> **Why batches rather than a rolling list.** A rolling list means every account is at a different stage and you spend your morning working out where everyone is. A batch means you always know exactly which touch is due today, and it means you can tell at the end of three weeks whether that particular thesis worked.
+> **Two things decide whether a week works, and neither of them happens on the phone.**
 >
-> It also makes the job teachable. When something isn't converting, we can look at one batch and one argument rather than at four hundred accounts in various states.
+> **The theme.** One segment, one pain, one reference, one angle. Everything you send that week is a different length of the same argument.
+>
+> **The list.** Fifty firms where that argument is true.
+>
+> Get those two right and an average week converts. Get them wrong and no amount of dialling saves it. This is why Monday is a build day and why nothing sends until it's been reviewed.
 
 ---
 
-## Monday: build the batch
+## How the three channels fit together
 
-Monday is a build day. No sequences launch, and the only calls you make are callbacks and inbound.
+**The email sequence is the backbone.** It's automated, we have capacity sitting unused, and it guarantees every firm on the list hears the argument at least four times over two weeks whether or not you get to them personally. It runs in Amplemarket and it costs you almost no time after Monday.
 
-**For your first eight weeks, leadership hands you the batch.** You don't source it. You still do everything from step three down, because the research and the personalisation are the job, and they're the part that takes practice. From week nine you build roughly half of it yourself, and from month four most of it.
+**LinkedIn and the phone are where your hours go**, because per touch they produce interest at roughly twelve times the rate.
+
+| Channel | Volume, 30 days | Reply / connect | **Interested** |
+|---|---|---|---|
+| Email | 5,571 sent | 0.37% | **0.13%** |
+| LinkedIn | 2,227 tasks | 3.56% | **1.64%** |
+| Phone | 908 calls | 10.13% connect | **1.65%** |
+
+Read that correctly. It doesn't mean email is wrong, it means email is cheap coverage and your personal time is expensive, so spend it where the rate is highest. A firm that gets the sequence and nothing else is a firm we've reached. A firm that gets the sequence plus a connection note plus two calls is a firm we've actually worked.
+
+**The second finding matters as much. Meetings get booked on follow-ups, not first touches.** The ask goes on touch two or three. Your first message earns a reply and nothing else.
+
+---
+
+## Monday: build the week
+
+Nothing sends and you make no cold calls. Roughly a fifth of your week goes here and it decides the other four fifths.
+
+### Step one: the theme
+
+**For now leadership picks it.** The bank to pick from is in [Outbound Focus](https://app.notion.com/p/3899073ab18780259b1fcaab5589f8d7), which has twenty-one practice segments already written up with the titles to target and the angle for each, plus the location themes for cities and trips we're running.
+
+A theme is good when all fifty firms could receive the same message and it would be specifically true of every one of them.
+
+> **The test.** Swap firm A's name for firm B's on your list. Is the email still true?
+>
+> **Yes** means it's a real segment theme. Good.
+>
+> **It would be true of any law firm anywhere** means it's generic. Rewrite it.
+
+The strongest themes carry a trigger, meaning something that changed recently. A merger in the last eighteen months. A new managing partner. A conference they attended. An AI tool bought in 2024 that's up for renewal. Triggers beat demographics every time.
+
+### Step two: the list
 
 | | What you do | Where |
 |---|---|---|
-| **1. Pick the thesis** | One engine, one segment, one geography, one reference. Write it as a single sentence | Batch tracker |
-| **2. Build the raw list** | Per the engine. Partner customer pages, PostHog visitors, a radius around an anchor client | Clay |
-| **3. Enrich** | Firm size, practice mix, DMS, recent news, current AI tooling if visible | Clay |
-| **4. Dedupe** | Against HubSpot and Attio. Kill anything an AE owns, anything live, anything contacted in the last ninety days | HubSpot, Attio |
-| **5. Pick contacts** | One or two per firm, and the right persona for that firm's size. Managing partner at twenty lawyers, practice group leader at a hundred | HubSpot |
-| **6. Write the brief** | The thesis, the reference you'll use, the angle, and the one line of personalisation per firm | Batch tracker |
-| **7. Get it reviewed** | Manager signs off before anything sends. Every week for the first eight, then spot checks | 30 min Monday |
+| **Take the firms** | Roughly **50**, all matching the theme | Notion |
+| **Pick the people** | Two per firm, about 100 contacts. Titles are already written per segment | Sales Navigator |
+| **Enrich** | Phone, title, firm size, practice mix, recent news. Harsh helps here | Clay |
+| **Dedupe** | Against HubSpot and Attio. Kill anything an AE owns, anything live, any customer, anything touched in ninety days | HubSpot, Attio |
 
-**The batch brief is four lines and it goes at the top of the tracker row.**
+**The list test.** Read any three rows at random. If you can't say in one sentence why that firm belongs to this theme, it doesn't, and it comes off.
 
-> **Thesis.** Property teams at 10–50 lawyer firms in the North West running iManage.
+### Step three: the four assets
+
+Write these once and you never improvise for the rest of the week. Same argument, four lengths.
+
+**One. The email sequence.** Four steps over two weeks, the follow-ups threaded `Re:` on the original subject. Step one earns attention, the ask lands on step two.
+
+**Two. The connection note.** Under 300 characters, no ask, no pitch. The segment noun does the work.
+
+> Hi {First}, I'm at August, an AI platform built specifically for law firms. We work with {segment} on {pain point}. Wanted to connect and share what we're seeing across firms like yours.
+
+**Three. The accept DM.** Goes out the day after they accept, and **this one carries the ask**, because that's where the meetings come from. One specific thing, one low-friction offer, framed as a fifteen minute working session.
+
+**Four. The call opener.** Fifteen seconds. Who you are, the specific thing, ask permission to keep going.
+
+> **The rules on all four.** Under 300 characters on the connection note, and verify before sending. No em dashes. Never say "the data" or "our analysis" in anything a prospect reads. Only reference things you actually checked, never an invented post or mutual connection. Soft CTA only on a first touch. **No pricing, no demo ask and no meeting ask in a first cold touch.**
+
+### Step four: the brief, and the review
+
+Four lines at the top of the sprint row. If you can't write them, the week isn't ready.
+
+> **Theme.** Insurance defence shops, 20 to 150 attorneys, on flat-rate carrier arrangements.
 >
-> **Why now.** Harrison Drury are forty minutes away and taking on lease work they used to turn away.
+> **Angle.** More output per attorney hour on flat-fee matters without adding headcount.
 >
-> **Reference.** Harrison Drury. Never Hughes Hubbard.
+> **Reference.** Hicksons. Never Hughes Hubbard.
 >
-> **Angle.** Work you currently turn away starts paying.
+> **Titles.** Managing Partner, COO, Firm Administrator.
 
-If you can't write those four lines, the batch isn't ready. That's the whole point of the exercise.
+Then your manager signs off before anything sends. Every week for the first eight, spot checks after that. Book the slot early so a late review doesn't push Tuesday.
 
----
-
-## Tuesday to Friday: work the batches
-
-Every touch has a fixed day. You're never deciding what's due, you're just doing it.
-
-| Day | Email | Calls | LinkedIn |
-|---|---|---|---|
-| **Monday** | — | Callbacks, inbound, anyone who said "try me next week" | — |
-| **Tuesday** | New batch touch 1 · Week-2 batch touch 4 · Week-3 batch touch 6 | Whatever replied to this morning's sends | — |
-| **Wednesday** | — | **New batch touch 2.** Your heaviest dial day | — |
-| **Thursday** | — | Week-2 batch touch 5 · Week-3 batch touch 7 | — |
-| **Friday** | Week-3 batch touch 8, the graceful close | Light. Catch-up only | New batch touch 3, connection requests with a one-line note |
-
-**Emails go out Tuesday morning, in the prospect's time zone, before nine.** A partner clears his inbox before the day starts and again at the end of it. Anything landing at eleven is competing with actual work.
-
-**LinkedIn is Friday and it's forty requests, not four hundred.** The note references the same specific thing your Tuesday email did. A connection request with no note is a wasted touch, and a connection request that contradicts your email makes you look automated.
+**Monday is done when:** theme chosen, 50 firms, 100 contacts, four assets written, brief approved, sequence loaded in Amplemarket, dialer list loaded in Salesfinity.
 
 ---
 
-## The shape of a day
+## The week at a glance
 
-Clock times below are for somebody selling into the UK. Shift them for your territory, keep the structure.
-
-| When | What | Why then |
-|---|---|---|
-| First 30 min | **Triage.** Overnight replies, inbound, PostHog visitors from the last 24 hours, anything a prospect asked you for yesterday | Everything time-sensitive gets handled before the day can bury it |
-| 2 hours, early | **Call block one.** Protected. Phone on, everything else closed | Partners answer before their day starts. This is your best connect window and it's not negotiable |
-| Middle of the day | **The writing block.** Personalisation for tomorrow's sends, LinkedIn notes, research for Monday's batch, handoff write-ups | Nobody picks up mid-morning. They're in court, in meetings or with clients |
-| 90 min, late | **Call block two.** Same rules | The second window. Partners come back to their desk before they go home |
-| Last 20 min | **Close the day.** Log everything in HubSpot, post the daily numbers, set tomorrow's list up so you can start cold | A day you didn't log is a day that didn't happen, and tomorrow starts faster if tonight finished properly |
-
-The two call blocks are the part people quietly erode. They go on the calendar as busy, they don't move for internal meetings, and if one gets eaten it gets rescheduled the same day rather than written off.
+| | **Monday** | **Tuesday** | **Wednesday** | **Thursday** | **Friday** |
+|---|---|---|---|---|---|
+| **Email (auto)** | Sequence built | **Step 1 fires** | — | — | **Step 2 fires** |
+| **LinkedIn** | Queue built | **100 connection notes** | DM everyone who accepted | DM everyone who accepted | DM everyone who accepted |
+| **Phone** | — | 60, last week's list | **80, this week's list** | 60, this week's list | 20, catch-up |
+| **Other** | Build the week | — | — | — | Sprint row, handoffs, retro, build one thing |
 
 ---
 
-## What's allowed to break the plan
+## Day by day
 
-Most things aren't. These four are, and knowing which is which is most of what stops the day disappearing.
+### Monday · Build
+Theme, list, four assets, review, load. Nothing sends.
 
-| Trigger | What you do | How fast |
-|---|---|---|
-| **Inbound demo request** | Drop what you're doing and call them | Same hour |
-| **A positive reply** | Reply personally, offer two specific times | Within the hour, in work hours |
-| **PostHog: pricing page twice, or a case study, from a firm in segment** | Add to today's call list | Within 24 hours |
-| **An AE asks for context on your handoff** | Answer it now | Same day |
+### Tuesday · Launch
+**Sequence step one fires automatically.** Your job is the personal layer: **100 connection notes**, spread across the day rather than in one burst, because LinkedIn throttles bursts and a restricted account is worth less than a slow one.
 
-Everything else waits for its slot. A firm that looked interesting on LinkedIn, an idea for a new segment, a competitor's blog post. Write it down, put it in Monday's build, carry on with the block you're in.
+Then a **60 dial block on last week's list**, which is now in its second week and due another attempt at a different hour.
+
+**Done when:** 100 notes sent, 60 dials logged, every reply answered.
+
+### Wednesday · The heavy call day
+**Your biggest dial day, 80 dials on this week's list**, split across two protected blocks, one early and one late. Partners answer before their day starts and after it ends. Nobody picks up mid morning, they're in court or with clients.
+
+Then **DM everyone who accepted yesterday.** Accepts trickle in over several days, so this block repeats Wednesday, Thursday and Friday.
+
+**Done when:** 80 dials logged, zero accepts sitting without a DM.
+
+### Thursday · Conversations
+DM block first, then **60 dials, second attempt** at a different hour from Wednesday.
+
+Thursday is usually your best booking day, because the follow-ups are landing on people who first heard from you eight days ago.
+
+**Done when:** all accepts DM'd, 60 dials logged.
+
+### Friday · Close and build
+**Sequence step two fires.** Last week's list gets its close, a short graceful message saying you'll stop. That one gets more replies than anything in the middle, because people respond to being let go.
+
+Then the housekeeping that makes next week work. Update the **sprint row**. Confirm **every booked demo is logged in HubSpot** with clean attribution, because your comp is paid from it. **Hand off** to the AE. **Write the retro**, three lines.
+
+And **build one thing.** A Clay table, a Claude skill, a HubSpot view, a better sequence template. Something that makes next Monday faster, published so the team gets it free.
+
+**Done when:** sprint row complete, every booking logged and handed off, retro posted, one thing shipped.
 
 ---
 
-## The daily log
+## The second week of a list
 
-End of day, in `#sales-standup`. Five lines. It takes ninety seconds and it's how anybody can help you without asking how it's going.
+A list doesn't die on Friday. Its second week is where most of the meetings actually get booked.
 
-> **Tue 12 Aug**
-> Dials 54 · Connects 5 · Conversations 3
-> Booked 1 — Bermans, property, on iManage, Harvey renewal in Nov
-> Batch W1 touch 1 sent, 80 contacts. W3 touch 6 sent.
+| | What it gets |
+|---|---|
+| **Tuesday** | Sequence step 3 fires · call attempt three, different hour |
+| **Thursday** | Rolling LinkedIn DMs to late accepts |
+| **Friday** | Sequence step 4, the close |
+
+Across two weeks each firm gets four emails, a connection note, a DM if they accept, and up to three call attempts. **Never one and done.** Whether the follow-ups actually happen is the single biggest lever you control.
+
+---
+
+## Your daily scoreboard
+
+Posted in `#sales-standup` at the end of every day. Ninety seconds.
+
+> **Wed 12 Aug**
+> Connection notes 100 sent Tue · 34 accepted · 34 DM'd
+> Dials 81 · Connects 8 · Conversations 5
+> Booked 1 — Bermans, insurance defence, flat-rate carrier work, COO
 > Blocked on: need Neil for ten minutes on Muckle's security questions
 
-The last line matters more than the numbers. A blocker posted on Tuesday gets solved on Tuesday, and a blocker posted on Friday is just an explanation.
+The blocker line matters more than the numbers. Raised Wednesday it gets solved Wednesday. Raised Friday it's just an explanation.
+
+**Daily targets at full ramp:**
+
+| | Mon | Tue | Wed | Thu | Fri |
+|---|---|---|---|---|---|
+| Connection notes | — | 100 | — | — | — |
+| DMs to accepts | — | — | 100% | 100% | 100% |
+| Dials | — | 60 | 80 | 60 | 20 |
+| Replies answered | all | all | all | all | all |
 
 ---
 
 ## Your weekly numbers
 
-These are the things you control. The qualified meeting number comes out the other end, and it comes out reliably if the top of this table is honest.
-
-| Every week | Weeks 5–8 | Weeks 9–12 | Month 4+ |
+| Every week | Weeks 1–4 | Weeks 5–8 | Month 3+ |
 |---|---|---|---|
-| New accounts in the batch | 25 | 35 | 40 |
-| Contacts entering sequence | 50 | 70 | 80 |
-| Dials | 150 | 200 | 250 |
-| Connects | 12 | 16 | 20 |
-| Real conversations | 7 | 10 | 12 |
-| LinkedIn touches | 25 | 35 | 40 |
-| Meetings booked | 1–2 | 2–3 | 3–4 |
-| **Qualified meetings, per month** | **4** | **7** | **10** |
+| Firms on the list | 25 | 40 | 50 |
+| Contacts in sequence | 50 | 80 | 100 |
+| Connection notes | 50 | 80 | 100 |
+| Accept rate | 25%+ | 30%+ | 30%+ |
+| DMs to accepts | 100% | 100% | 100% |
+| Dials | 120 | 180 | 220 |
+| Connects | 12 | 18 | 22 |
+| Real conversations | 6 | 10 | 13 |
+| **Demos booked** | **1** | **1–2** | **2–3** |
 
-**Read the funnel, not the total.** If dials are green and conversations are red, your list is wrong. If conversations are green and bookings are red, your pitch is wrong. If bookings are green and held rate is red, you're booking people who didn't understand what they agreed to. Each of those is a different conversation with your manager and a different fix.
+**Read the funnel rather than the total.** Notes green and accepts red means the connection note is wrong. Accepts green and replies red means the DM is wrong. Dials green and connects red means the phone numbers are bad, so tell Harsh. Conversations green and bookings red means the pitch is wrong. Bookings green and held rate red means you're booking people who didn't understand what they agreed to. Five different problems, five different fixes.
 
-> **Two numbers can be gamed and both of them matter more than volume.**
+> **Two numbers can be gamed and both matter more than volume.**
 >
-> **Held rate**, meaning booked meetings that actually happen, should sit above 75%. It tells you whether the person you booked understood what they were coming to.
+> **Held rate**, meaning booked demos that actually happen, should sit above 75%. Your comp only pays when the prospect shows, so this is your money as well as our signal.
 >
 > **Handoff acceptance**, meaning handoffs the AE takes without asking follow-up questions, should sit above 80%.
 >
-> An SDR chasing dials will quietly destroy both of these while the activity board looks excellent. If either goes red, we stop looking at volume entirely until it recovers.
+> Somebody chasing dials will quietly destroy both while the activity board looks excellent. If either goes red we stop looking at volume until it recovers.
 
 ---
 
-## Friday: close the week
+## Friday: close the sprint
 
-Twenty minutes, posted in `#sales`, then a forty-five minute one-to-one.
+Update the row in **SDR Weekly Sprints** and post the retro in `#sales`.
 
-> **Week 33**
-> Qualified this week 3 · Month to date 7 of 10
-> Batch built: North West property, iManage, 40 firms, Harrison Drury reference
-> Best performing: case-study geography, 11% reply. Worst: partner installed base, 3%, killing it
-> **Learned:** every firm that mentioned a Harvey renewal took the meeting. Three out of three.
-> **Need:** a second UK reference. Harrison Drury doesn't land in Yorkshire.
+> **Week of 11 Aug · Insurance defence, 20–150 attorneys**
+> List 50 firms, 100 contacts · Notes 100 · Accepted 34 · Replies 9 · Positive 5 · Demos 3
+> **Worked:** the flat-fee angle. Four of five positive replies mentioned carrier rate pressure unprompted.
+> **Didn't:** COO titles. Almost no accepts. Managing partners accepted at nearly double the rate.
+> **Next:** same theme, managing partners only.
 
-The learning line is the one that compounds. One specific thing a week, written down where the rest of the team can read it, is how a territory stops being one person's private knowledge.
-
-**The one-to-one is structured against [Good SDR, Bad SDR](./good-sdr-bad-sdr.md)**, not against the numbers. The numbers get four minutes at the start. The rest is one recorded call, listened to together.
+The retro is the part that compounds, and it feeds straight back into theme selection. One specific thing a week, written where the team can read it, is how a segment stops being one person's private knowledge.
 
 ---
 
 ## Where everything lives
 
-The rule that stops double entry: **one system owns each thing, and nothing gets recorded twice.**
+One system owns each thing, and nothing gets recorded twice.
 
-| System | Owns | Checked |
+| System | Owns |
+|---|---|
+| **HubSpot** | Every contact, activity, booked demo and deal. The source of truth. Attribution has to be clean because comp is paid from it |
+| **Amplemarket** | The email sequence, LinkedIn tasks, follow-up automation |
+| **Salesfinity** | The dialer and both call blocks |
+| **Sales Navigator** | Picking people, stakeholder mapping |
+| **Clay** | Enrichment and list building, with Harsh |
+| **SDR Weekly Sprints** | One row per week. The brief, the numbers, the retro |
+| **Booked Demos tracker** | The comp ledger. $200 per qualified demo that happens, plus 5% of deal value on close |
+| **Slack** | Daily scoreboard in `#sales-standup`, retro in `#sales` |
+
+---
+
+## What's allowed to break the plan
+
+Four things. Everything else waits for its slot.
+
+| Trigger | What you do | How fast |
 |---|---|---|
-| **HubSpot** | Every account, contact, activity and deal. The source of truth. If it isn't here it didn't happen | Continuously |
-| **Amplemarket** | Sequences, sends, LinkedIn tasks | Daily |
-| **Salesfinity** | The dialer and the call blocks | Both call blocks |
-| **Clay** | Batch building and enrichment | Mondays |
-| **PostHog** | The site visitor feed | Every morning in triage |
-| **Attio** | Prior conversations and call intelligence. Check before touching any account | Before outreach |
-| **Batch tracker** (Notion) | One row per weekly batch. Thesis, reference, size, reply rate, meetings, what you learned | Monday and Friday |
-| **Slack** | The daily log and the Friday review | Daily |
+| **Inbound demo request** | Stop and call them | Same hour |
+| **A positive reply, any channel** | Reply personally, offer two specific times | Within the hour |
+| **A site visitor hitting pricing twice, in segment** | Add to today's dial list | Within 24 hours |
+| **An AE asking about your handoff** | Answer now | Same day |
 
-The batch tracker is the only new thing, and it exists because HubSpot is good at accounts and bad at answering *did that argument work?* One row a week, thirteen rows a quarter, and you can see at a glance which theses are worth repeating.
+A firm that looked interesting, an idea for a new theme, a competitor's post. Write it down, put it in Monday, carry on with the block you're in.
 
 ---
 
 ## What your manager runs
 
-The rhythm only holds if both sides show up. Three fixed slots a week.
+Three fixed slots. None of them get cancelled.
 
-- **Monday, 30 minutes.** Batch review before anything goes live. The thesis, the list, the personalisation on a sample of five. Every week for the first eight, then spot checks.
-- **Wednesday, 15 minutes.** Pace check against the weekly board. Off-pace gets said on Wednesday while there's still time to act on it.
-- **Friday, 45 minutes.** One-to-one against Good SDR / Bad SDR, plus one recorded call reviewed together with written feedback.
-
-None of these get cancelled. A cancelled Monday means a batch goes out unreviewed, and an unreviewed batch can burn forty accounts we can't get back.
+- **Monday, 30 minutes.** Review the theme, the list and the four assets before anything sends. This is the highest-leverage half hour in the week, because an unreviewed list burns fifty firms we can't get back.
+- **Wednesday, 15 minutes.** Pace check. Off-pace gets said Wednesday while there's still time to act.
+- **Friday, 45 minutes.** One to one against [Good SDR, Bad SDR](./good-sdr-bad-sdr.md), plus one recorded call listened to together with written feedback.
 
 ---
 
-## Starting from nothing
+## Starting from a standing start
 
-If you're setting this up for the first time rather than joining it, the first three weeks look like this.
+**Week one.** Take one theme with real evidence behind it, which right now is insurance defence and workers' compensation, and 25 firms. Run the week exactly as written. Log every day. Add nothing.
 
-**Week one.** Build one batch of twenty-five, from the warmest engine you have, which is almost always site visitors. Put the four-line brief on it. Run the sequence exactly as written. Log every day. Don't add anything.
+**Week two.** Build the second list while the first is in its follow-up week. This is the week it feels like too much and it isn't, because week two of a list needs about an hour a day.
 
-**Week two.** Build the second batch while the first is mid-sequence. This is the week the rhythm starts to feel like a rhythm, and it's also the week it feels like too much. It isn't. The first batch needs almost nothing from you in its second week.
+**Week three.** You're at steady state. From here the only things that change are list size and which theme.
 
-**Week three.** Third batch. Now you're at steady state. From here the only thing that changes is batch size.
-
-Don't try to run three engines in the first month. One engine, three batches, then add the second.
+Don't run two themes at once in the first month. One theme, three weeks, then rotate.
