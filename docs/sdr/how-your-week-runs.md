@@ -8,9 +8,11 @@
 
 ## The shape of the whole thing
 
-**One theme a week. One list of firms behind it. An email sequence as the backbone, with LinkedIn and calls layered on top to make it personal.**
+**One theme a week. One list of firms behind it. A multi-channel sequence as the backbone, with calls layered on top by you.**
 
-Somebody hands you a list of firms on Monday. The sequence goes live Tuesday and runs itself from there. Your hours go into the personal touches, because that's what actually converts. Each list gets worked for two weeks, so at any point you have **two lists live**, this week's and last week's, while Monday builds the next one.
+**Rutvik provides the theme and the list.** You build the assets on Monday morning, they're **approved by 11am, and the sequence starts the same day.**
+
+From there the sequence runs itself for six working days across LinkedIn and email. Your hours go into calls and into answering replies, because those are the two things Amplemarket can't do for you. Each list finishes the following Tuesday, so you always have this week's list mid-flight and last week's list closing out.
 
 > **Two things decide whether a week works, and neither of them happens on the phone.**
 >
@@ -22,11 +24,26 @@ Somebody hands you a list of firms on Monday. The sequence goes live Tuesday and
 
 ---
 
-## How the three channels fit together
+## The sequence, and what it already does
 
-**The email sequence is the backbone.** It's automated, we have capacity sitting unused, and it guarantees every firm on the list hears the argument at least four times over two weeks whether or not you get to them personally. It runs in Amplemarket and it costs you almost no time after Monday.
+The backbone is a single Amplemarket sequence that runs **email and LinkedIn together**, fully automatic, over six working days. This is the shape Shaya already built and it's the right one.
 
-**LinkedIn and the phone are where your hours go**, because per touch they produce interest at roughly twelve times the rate.
+| Stage | Channel | When | What it does |
+|---|---|---|---|
+| 1 | LinkedIn connect | Day 0 | The connection note. No ask |
+| 2 | Email | +1 day | Four paragraphs, fresh subject line |
+| 3 | LinkedIn message | +1 day | **The ask lands here** |
+| 4 | Email | +2 days | `Re:` threaded on the original |
+| 5 | LinkedIn like last post | same day | Free visibility |
+| 6 | Email | +2 days | `Re:` threaded, the close |
+
+Six touches, one to two days apart, which is exactly what the audit says works. The ask sits on touch three rather than touch one. The follow-ups thread as `Re:` so they land in the same conversation. LinkedIn steps skip themselves if they go more than three days overdue, so a slow week doesn't produce a message that arrives out of context.
+
+**What the sequence doesn't do is call anybody.** That's the gap, and it matters, because the phone produces the highest interested rate we have.
+
+**So the split is simple. Amplemarket owns email and LinkedIn. You own the phone and every reply.**
+
+Per touch, here's why the phone is worth your hours:
 
 | Channel | Volume, 30 days | Reply / connect | **Interested** |
 |---|---|---|---|
@@ -34,19 +51,27 @@ Somebody hands you a list of firms on Monday. The sequence goes live Tuesday and
 | LinkedIn | 2,227 tasks | 3.56% | **1.64%** |
 | Phone | 908 calls | 10.13% connect | **1.65%** |
 
-Read that correctly. It doesn't mean email is wrong, it means email is cheap coverage and your personal time is expensive, so spend it where the rate is highest. A firm that gets the sequence and nothing else is a firm we've reached. A firm that gets the sequence plus a connection note plus two calls is a firm we've actually worked.
-
-**The second finding matters as much. Meetings get booked on follow-ups, not first touches.** The ask goes on touch two or three. Your first message earns a reply and nothing else.
+Read that correctly. It doesn't mean email is wrong, it means email is cheap automated coverage and your personal time is expensive, so spend it where the rate is highest. A firm that gets the sequence and nothing else is a firm we've reached. A firm that gets the sequence plus two calls is a firm we've actually worked.
 
 ---
 
-## Monday: build the week
+## Monday: build it and launch it
 
-Nothing sends and you make no cold calls. Roughly a fifth of your week goes here and it decides the other four fifths.
+Everything happens before lunch. The gate is **11am**.
 
-### Step one: the theme
+| Time | What | Who |
+|---|---|---|
+| **By Friday close** | Theme and firm list handed over | Rutvik |
+| **9:00–11:00** | Contacts, dedupe, enrichment, write the assets | You |
+| **11:00** | Review and sign-off | Rutvik |
+| **11:00–12:30** | Load the sequence, load the dialer | You |
+| **Afternoon** | **Sequence goes live.** Stage 1 fires | Automatic |
 
-**For now leadership picks it.** The bank to pick from is in [Outbound Focus](https://app.notion.com/p/3899073ab18780259b1fcaab5589f8d7), which has twenty-one practice segments already written up with the titles to target and the angle for each, plus the location themes for cities and trips we're running.
+The eleven o'clock gate only works if the theme and list land the Friday before. If they arrive Monday morning you'll lose the day, so chase them on Friday rather than waiting.
+
+### The theme
+
+**Rutvik picks it.** The bank to pick from is in [Outbound Focus](https://app.notion.com/p/3899073ab18780259b1fcaab5589f8d7), which has twenty-one practice segments already written up with the titles to target and the angle for each, plus the location themes for cities and trips we're running.
 
 A theme is good when all fifty firms could receive the same message and it would be specifically true of every one of them.
 
@@ -58,34 +83,40 @@ A theme is good when all fifty firms could receive the same message and it would
 
 The strongest themes carry a trigger, meaning something that changed recently. A merger in the last eighteen months. A new managing partner. A conference they attended. An AI tool bought in 2024 that's up for renewal. Triggers beat demographics every time.
 
-### Step two: the list
+### The list
 
 | | What you do | Where |
 |---|---|---|
-| **Take the firms** | Roughly **50**, all matching the theme | Notion |
+| **Take the firms** | Roughly **50**, all matching the theme, handed over by Rutvik | Notion |
 | **Pick the people** | Two per firm, about 100 contacts. Titles are already written per segment | Sales Navigator |
 | **Enrich** | Phone, title, firm size, practice mix, recent news. Harsh helps here | Clay |
 | **Dedupe** | Against HubSpot and Attio. Kill anything an AE owns, anything live, any customer, anything touched in ninety days | HubSpot, Attio |
 
 **The list test.** Read any three rows at random. If you can't say in one sentence why that firm belongs to this theme, it doesn't, and it comes off.
 
-### Step three: the four assets
+### The assets
 
-Write these once and you never improvise for the rest of the week. Same argument, four lengths.
+**You write these.** They're the dynamic fields the sequence fills in, so writing them is the same job as loading the sequence.
 
-**One. The email sequence.** Four steps over two weeks, the follow-ups threaded `Re:` on the original subject. Step one earns attention, the ask lands on step two.
+| Field | What it is | Level |
+|---|---|---|
+| `linkedin_connection_message` | Under 300 characters, no ask. The segment noun does the work | Segment |
+| `email_subject` | One fresh subject line. Everything after threads `Re:` on it | Segment |
+| `email1_para1` | The specific thing about this firm | **Per firm** |
+| `email1_para2–4` | The bridge, the reference, the ask | Segment |
+| `linkedin_subject`, `linkedin_message` | **The touch that carries the ask.** Short, one offer | Segment, para 1 per firm |
+| `email2_para1–4` | A different angle, never a bump of email one | Segment |
+| `email3_para1–3` | The graceful close | Segment |
 
-**Two. The connection note.** Under 300 characters, no ask, no pitch. The segment noun does the work.
+**Write the segment-level fields once.** They're the same for all fifty firms and they're the argument. **Then override paragraph one per firm** on the two touches that carry it, which is email one and the LinkedIn message. That's where the fifteen minutes of research per firm actually goes, and it's the difference between a themed sequence and a mail merge.
+
+Plus one asset that isn't in Amplemarket at all. **The call opener.** Fifteen seconds. Who you are, the specific thing, ask permission to keep going.
 
 > Hi {First}, I'm at August, an AI platform built specifically for law firms. We work with {segment} on {pain point}. Wanted to connect and share what we're seeing across firms like yours.
 
-**Three. The accept DM.** Goes out the day after they accept, and **this one carries the ask**, because that's where the meetings come from. One specific thing, one low-friction offer, framed as a fifteen minute working session.
+> **The rules on all of them.** Under 300 characters on the connection note, and verify before sending. No em dashes. Never say "the data" or "our analysis" in anything a prospect reads. Only reference things you actually checked, never an invented post or mutual connection. Soft CTA only on a first touch. **No pricing, no demo ask and no meeting ask in a first cold touch.**
 
-**Four. The call opener.** Fifteen seconds. Who you are, the specific thing, ask permission to keep going.
-
-> **The rules on all four.** Under 300 characters on the connection note, and verify before sending. No em dashes. Never say "the data" or "our analysis" in anything a prospect reads. Only reference things you actually checked, never an invented post or mutual connection. Soft CTA only on a first touch. **No pricing, no demo ask and no meeting ask in a first cold touch.**
-
-### Step four: the brief, and the review
+### The brief, and the 11am review
 
 Four lines at the top of the sprint row. If you can't write them, the week isn't ready.
 
@@ -97,9 +128,9 @@ Four lines at the top of the sprint row. If you can't write them, the week isn't
 >
 > **Titles.** Managing Partner, COO, Firm Administrator.
 
-Then your manager signs off before anything sends. Every week for the first eight, spot checks after that. Book the slot early so a late review doesn't push Tuesday.
+Rutvik signs off at 11am. Nothing sends before that.
 
-**Monday is done when:** theme chosen, 50 firms, 100 contacts, four assets written, brief approved, sequence loaded in Amplemarket, dialer list loaded in Salesfinity.
+**Monday is done when:** 50 firms, 100 contacts, all dynamic fields written, brief approved at 11am, sequence loaded and live, dialer list loaded in Salesfinity.
 
 ---
 
@@ -107,41 +138,48 @@ Then your manager signs off before anything sends. Every week for the first eigh
 
 | | **Monday** | **Tuesday** | **Wednesday** | **Thursday** | **Friday** |
 |---|---|---|---|---|---|
-| **Email (auto)** | Sequence built | **Step 1 fires** | — | — | **Step 2 fires** |
-| **LinkedIn** | Queue built | **100 connection notes** | DM everyone who accepted | DM everyone who accepted | DM everyone who accepted |
-| **Phone** | — | 60, last week's list | **80, this week's list** | 60, this week's list | 20, catch-up |
-| **Other** | Build the week | — | — | — | Sprint row, handoffs, retro, build one thing |
+| **Sequence (automatic)** | Build, approve at 11am, **stage 1 live PM** | Stage 2, email | Stage 3, **the LinkedIn ask** | — | Stages 4 and 5 |
+| **Last week's list** | — | Stage 6, the close | — | — | — |
+| **Phone (you)** | — | **80 dials, this week** | **80 dials, this week** | 60 dials, this week | 40 dials, last week |
+| **Replies (you)** | — | All, within the hour | All, within the hour | All, within the hour | All, within the hour |
+| **Other** | Build and launch | — | — | — | Sprint row, handoffs, retro, build one thing |
+
+**Call on Tuesday and Wednesday, not Monday.** By Tuesday the connection note and the first email have landed, so you're following up rather than cold calling. That's worth several points of connect rate and it costs nothing to wait a day.
 
 ---
 
 ## Day by day
 
-### Monday · Build
-Theme, list, four assets, review, load. Nothing sends.
+### Monday · Build and launch
+Contacts, dedupe, enrichment, dynamic fields written. Approved at 11am. Sequence loaded and live in the afternoon, dialer list ready for tomorrow. No cold calls today.
 
-### Tuesday · Launch
-**Sequence step one fires automatically.** Your job is the personal layer: **100 connection notes**, spread across the day rather than in one burst, because LinkedIn throttles bursts and a restricted account is worth less than a slow one.
+**Done when:** approved at 11am, sequence live, dialer loaded.
 
-Then a **60 dial block on last week's list**, which is now in its second week and due another attempt at a different hour.
+### Tuesday · First call day
+The connection note landed yesterday and email one lands today, so every call you make is a follow-up rather than a cold open. Mention it: *"I sent you a note yesterday."*
 
-**Done when:** 100 notes sent, 60 dials logged, every reply answered.
+**80 dials on this week's list**, split across two protected blocks, one early and one late. Partners answer before their day starts and after it ends. Nobody picks up mid morning, they're in court or with clients.
 
-### Wednesday · The heavy call day
-**Your biggest dial day, 80 dials on this week's list**, split across two protected blocks, one early and one late. Partners answer before their day starts and after it ends. Nobody picks up mid morning, they're in court or with clients.
+Last week's list gets its final email automatically. Nothing for you to do there beyond answering replies.
 
-Then **DM everyone who accepted yesterday.** Accepts trickle in over several days, so this block repeats Wednesday, Thursday and Friday.
+**Done when:** 80 dials logged, every reply answered inside the hour.
 
-**Done when:** 80 dials logged, zero accepts sitting without a DM.
+### Wednesday · The ask lands
+**Stage three fires, the LinkedIn message carrying the ask.** This is the highest-yield touch in the whole sequence, so watch the inbox and reply fast.
 
-### Thursday · Conversations
-DM block first, then **60 dials, second attempt** at a different hour from Wednesday.
+**80 more dials**, second attempt on anyone who didn't pick up Tuesday, at a different hour.
 
-Thursday is usually your best booking day, because the follow-ups are landing on people who first heard from you eight days ago.
+**Done when:** 80 dials logged, every reply answered inside the hour.
 
-**Done when:** all accepts DM'd, 60 dials logged.
+### Thursday · Work the responses
+**60 dials**, third attempt on the people worth three attempts, meaning the right title at a firm that fits the theme.
+
+Thursday is usually your best booking day, because the LinkedIn ask went out yesterday and people are coming back to it.
+
+**Done when:** 60 dials logged, no reply older than an hour.
 
 ### Friday · Close and build
-**Sequence step two fires.** Last week's list gets its close, a short graceful message saying you'll stop. That one gets more replies than anything in the middle, because people respond to being let go.
+Stages four and five fire automatically. **40 dials on last week's list**, which is the final attempt before it closes.
 
 Then the housekeeping that makes next week work. Update the **sprint row**. Confirm **every booked demo is logged in HubSpot** with clean attribution, because your comp is paid from it. **Hand off** to the AE. **Write the retro**, three lines.
 
@@ -151,17 +189,11 @@ And **build one thing.** A Clay table, a Claude skill, a HubSpot view, a better 
 
 ---
 
-## The second week of a list
+## What each firm actually receives
 
-A list doesn't die on Friday. Its second week is where most of the meetings actually get booked.
+Across six working days, every firm on the list gets **three emails, a connection request, a LinkedIn message, a post like, and up to three call attempts.** Eight touches, all carrying the same argument.
 
-| | What it gets |
-|---|---|
-| **Tuesday** | Sequence step 3 fires · call attempt three, different hour |
-| **Thursday** | Rolling LinkedIn DMs to late accepts |
-| **Friday** | Sequence step 4, the close |
-
-Across two weeks each firm gets four emails, a connection note, a DM if they accept, and up to three call attempts. **Never one and done.** Whether the follow-ups actually happen is the single biggest lever you control.
+**Never one and done.** Whether the follow-ups happen is the single biggest lever you control, and the sequence handles five of the eight for you. The three that are yours are the calls.
 
 ---
 
@@ -170,7 +202,7 @@ Across two weeks each firm gets four emails, a connection note, a DM if they acc
 Posted in `#sales-standup` at the end of every day. Ninety seconds.
 
 > **Wed 12 Aug**
-> Connection notes 100 sent Tue · 34 accepted · 34 DM'd
+> Sequence live Mon · 100 in flight · 34 accepted · stage 3 fired today
 > Dials 81 · Connects 8 · Conversations 5
 > Booked 1 — Bermans, insurance defence, flat-rate carrier work, COO
 > Blocked on: need Neil for ten minutes on Muckle's security questions
@@ -181,9 +213,9 @@ The blocker line matters more than the numbers. Raised Wednesday it gets solved 
 
 | | Mon | Tue | Wed | Thu | Fri |
 |---|---|---|---|---|---|
-| Connection notes | — | 100 | — | — | — |
-| DMs to accepts | — | — | 100% | 100% | 100% |
-| Dials | — | 60 | 80 | 60 | 20 |
+| Assets approved | **11am** | — | — | — | — |
+| Sequence live | **by 2pm** | — | — | — | — |
+| Dials | — | 80 | 80 | 60 | 40 |
 | Replies answered | all | all | all | all | all |
 
 ---
@@ -194,15 +226,13 @@ The blocker line matters more than the numbers. Raised Wednesday it gets solved 
 |---|---|---|---|
 | Firms on the list | 25 | 40 | 50 |
 | Contacts in sequence | 50 | 80 | 100 |
-| Connection notes | 50 | 80 | 100 |
-| Accept rate | 25%+ | 30%+ | 30%+ |
-| DMs to accepts | 100% | 100% | 100% |
-| Dials | 120 | 180 | 220 |
+| Connection accept rate | 25%+ | 30%+ | 30%+ |
+| Dials | 150 | 220 | 260 |
 | Connects | 12 | 18 | 22 |
 | Real conversations | 6 | 10 | 13 |
 | **Demos booked** | **1** | **1–2** | **2–3** |
 
-**Read the funnel rather than the total.** Notes green and accepts red means the connection note is wrong. Accepts green and replies red means the DM is wrong. Dials green and connects red means the phone numbers are bad, so tell Harsh. Conversations green and bookings red means the pitch is wrong. Bookings green and held rate red means you're booking people who didn't understand what they agreed to. Five different problems, five different fixes.
+**Read the funnel rather than the total.** Accepts red means the connection note is wrong. Accepts fine but replies red means the LinkedIn message is wrong, which is the touch carrying the ask. Dials green and connects red means the phone numbers are bad, so tell Harsh. Conversations green and bookings red means the pitch is wrong. Bookings green and held rate red means you're booking people who didn't understand what they agreed to. Five different problems, five different fixes.
 
 > **Two numbers can be gamed and both matter more than volume.**
 >
@@ -219,7 +249,7 @@ The blocker line matters more than the numbers. Raised Wednesday it gets solved 
 Update the row in **SDR Weekly Sprints** and post the retro in `#sales`.
 
 > **Week of 11 Aug · Insurance defence, 20–150 attorneys**
-> List 50 firms, 100 contacts · Notes 100 · Accepted 34 · Replies 9 · Positive 5 · Demos 3
+> List 50 firms, 100 contacts · Accepted 34 · Replies 9 · Positive 5 · Demos 3
 > **Worked:** the flat-fee angle. Four of five positive replies mentioned carrier rate pressure unprompted.
 > **Didn't:** COO titles. Almost no accepts. Managing partners accepted at nearly double the rate.
 > **Next:** same theme, managing partners only.
@@ -235,7 +265,7 @@ One system owns each thing, and nothing gets recorded twice.
 | System | Owns |
 |---|---|
 | **HubSpot** | Every contact, activity, booked demo and deal. The source of truth. Attribution has to be clean because comp is paid from it |
-| **Amplemarket** | The email sequence, LinkedIn tasks, follow-up automation |
+| **Amplemarket** | The whole sequence. Email and LinkedIn, automatic, six stages over six days |
 | **Salesfinity** | The dialer and both call blocks |
 | **Sales Navigator** | Picking people, stakeholder mapping |
 | **Clay** | Enrichment and list building, with Harsh |
@@ -264,7 +294,7 @@ A firm that looked interesting, an idea for a new theme, a competitor's post. Wr
 
 Three fixed slots. None of them get cancelled.
 
-- **Monday, 30 minutes.** Review the theme, the list and the four assets before anything sends. This is the highest-leverage half hour in the week, because an unreviewed list burns fifty firms we can't get back.
+- **Monday, 11am.** Review the theme, the list and the assets. Nothing sends before sign-off. This is the highest-leverage half hour in the week, because an unreviewed list burns fifty firms we can't get back.
 - **Wednesday, 15 minutes.** Pace check. Off-pace gets said Wednesday while there's still time to act.
 - **Friday, 45 minutes.** One to one against [Good SDR, Bad SDR](./good-sdr-bad-sdr.md), plus one recorded call listened to together with written feedback.
 
@@ -274,7 +304,7 @@ Three fixed slots. None of them get cancelled.
 
 **Week one.** Take one theme with real evidence behind it, which right now is insurance defence and workers' compensation, and 25 firms. Run the week exactly as written. Log every day. Add nothing.
 
-**Week two.** Build the second list while the first is in its follow-up week. This is the week it feels like too much and it isn't, because week two of a list needs about an hour a day.
+**Week two.** Build the second list while the first is finishing. This is the week it feels like too much and it isn't, because a list in its final days needs almost nothing from you.
 
 **Week three.** You're at steady state. From here the only things that change are list size and which theme.
 
