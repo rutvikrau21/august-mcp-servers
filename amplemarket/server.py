@@ -2,6 +2,11 @@
 Amplemarket MCP Server - FastMCP server exposing Amplemarket API as MCP tools.
 Setup: pip install mcp[cli] httpx uvicorn
 Run: AMPLEMARKET_API_KEY=your_key python server.py
+
+Each person who connects can bring their own key instead of using the server's:
+  • header on the MCP request      X-Amplemarket-Api-Key: amp_...
+  • query on the MCP server URL    https://host/mcp?amplemarket_key=amp_...
+  • env var on the server          AMPLEMARKET_API_KEY (shared fallback)
 """
 import os, json
 from typing import Optional, List
@@ -9,12 +14,42 @@ import httpx
 from mcp.server.fastmcp import FastMCP
 
 BASE_URL = "https://api.amplemarket.com"
-API_KEY = os.environ.get("AMPLEMARKET_API_KEY", "")
+API_KEY_HEADER = "X-Amplemarket-Api-Key"
+API_KEY_QUERY = ("amplemarket_key", "amplemarket_api_key")
 mcp = FastMCP("Amplemarket", host="0.0.0.0")
 
+def _current_request():
+    """The HTTP request behind the MCP call in flight, or None (e.g. stdio)."""
+    try:
+        from mcp.server.lowlevel.server import request_ctx
+        return getattr(request_ctx.get(), "request", None)
+    except (ImportError, LookupError, AttributeError):
+        return None
+
+def _clean(value):
+    v = (value or "").strip().strip('"').strip("'")
+    return v[7:].strip() if v.lower().startswith("bearer ") else v
+
+def _api_key():
+    """Key for this connection: header, then URL query, then server env var."""
+    req = _current_request()
+    if req is not None:
+        key = _clean(req.headers.get(API_KEY_HEADER))
+        if key: return key
+        for name in API_KEY_QUERY:
+            key = _clean(req.query_params.get(name))
+            if key: return key
+    key = _clean(os.environ.get("AMPLEMARKET_API_KEY"))
+    if not key:
+        raise RuntimeError(
+            f"No Amplemarket API key for this connection. Add your own (amp_...) by appending "
+            f"?{API_KEY_QUERY[0]}=YOUR_KEY to the MCP server URL, or by sending the {API_KEY_HEADER} "
+            f"header. A server-wide default can be set with AMPLEMARKET_API_KEY."
+        )
+    return key
+
 def _headers():
-    if not API_KEY: raise RuntimeError("AMPLEMARKET_API_KEY not set.")
-    return {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
+    return {"Authorization": f"Bearer {_api_key()}", "Content-Type": "application/json"}
 
 def _get(path, params=None):
     r = httpx.get(f"{BASE_URL}{path}", headers=_headers(), params=params, timeout=30)
