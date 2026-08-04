@@ -59,6 +59,9 @@ Work through these in order during your first four weeks, alongside the company 
 **Week one, and then every day after that.** The page you actually live in. What happens on Monday, what happens Tuesday to Friday, the shape of a day, what's allowed to interrupt it, and the numbers you post.
 → [5 · How Your Week Runs](./how-your-week-runs.md)
 
+**Your first four weeks, in order.** The week-by-week plan, what you certify on at the end of it, and the library of sixteen real call recordings you work through along the way.
+→ [6 · New SDR Onboarding Flow](./onboarding-flow.md)
+
 ---
 
 Two pages of the company onboarding are effectively part of this role onboarding and you should know them cold. **Page 4, The Customers**, because the way we tell those stories out loud is your best material. **Page 6, Objection Handling**, because everything harder than the three objections in the outbound craft page lives there. **Page 1, The Three-Step Journey**, is worth a second read too, because step one is the only step you sell.
