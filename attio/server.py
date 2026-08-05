@@ -1,11 +1,4 @@
-"""Attio MCP Server — comprehensive wrapper around the Attio REST API v2.
-
-Each person who connects can bring their own access token instead of using the
-server's:
-  • header on the MCP request      X-Attio-Api-Key: <token>
-  • query on the MCP server URL    https://host/mcp?attio_key=<token>
-  • env var on the server          ATTIO_API_KEY (shared fallback)
-"""
+"""Attio MCP Server — comprehensive wrapper around the Attio REST API v2."""
 
 import os
 import json
@@ -17,51 +10,11 @@ from mcp.server.fastmcp import FastMCP
 # Server setup
 # ---------------------------------------------------------------------------
 
+API_KEY = os.environ.get("ATTIO_API_KEY", "a46ef67f2b875c2bd713f5e88b1c71cf9c59fba9a8eac1e9a5169f329d559b40")
 BASE_URL = "https://api.attio.com/v2"
-API_KEY_HEADER = "X-Attio-Api-Key"
-API_KEY_QUERY = ("attio_key", "attio_api_key")
 
 mcp = FastMCP("Attio", host="0.0.0.0")
 app = mcp.streamable_http_app()
-
-
-# ---------------------------------------------------------------------------
-# Per-connection auth
-# ---------------------------------------------------------------------------
-
-def _current_request():
-    """The HTTP request behind the MCP call in flight, or None (e.g. stdio)."""
-    try:
-        from mcp.server.lowlevel.server import request_ctx
-        return getattr(request_ctx.get(), "request", None)
-    except (ImportError, LookupError, AttributeError):
-        return None
-
-
-def _clean(value: Optional[str]) -> str:
-    v = (value or "").strip().strip('"').strip("'")
-    return v[7:].strip() if v.lower().startswith("bearer ") else v
-
-
-def _api_key() -> str:
-    """Token for this connection: header, then URL query, then server env var."""
-    req = _current_request()
-    if req is not None:
-        key = _clean(req.headers.get(API_KEY_HEADER))
-        if key:
-            return key
-        for name in API_KEY_QUERY:
-            key = _clean(req.query_params.get(name))
-            if key:
-                return key
-    key = _clean(os.environ.get("ATTIO_API_KEY"))
-    if not key:
-        raise RuntimeError(
-            f"No Attio API key for this connection. Add your own access token by appending "
-            f"?{API_KEY_QUERY[0]}=YOUR_KEY to the MCP server URL, or by sending the "
-            f"{API_KEY_HEADER} header. A server-wide default can be set with ATTIO_API_KEY."
-        )
-    return key
 
 
 # ---------------------------------------------------------------------------
@@ -70,7 +23,7 @@ def _api_key() -> str:
 
 def _headers() -> dict:
     return {
-        "Authorization": f"Bearer {_api_key()}",
+        "Authorization": f"Bearer {API_KEY}",
         "Content-Type": "application/json",
     }
 

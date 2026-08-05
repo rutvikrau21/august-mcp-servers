@@ -7,132 +7,13 @@ August MCPs — Single FastMCP server exposing four services:
 
 All tools are prefixed with their service name so any MCP client or LLM can
 route to the right service without ambiguity.
-
-Every service key is resolved per connection — see PER-CONNECTION API KEYS below.
 """
 import os, json
-from typing import Any, Dict, NamedTuple, Optional, List, Tuple
+from typing import Any, Dict, Optional, List
 import httpx
 from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("August MCPs", host="0.0.0.0")
-
-
-# ===========================================================================
-# PER-CONNECTION API KEYS
-# ---------------------------------------------------------------------------
-# Nothing is hardcoded: each person who connects brings their own credentials.
-# A key for a service is resolved fresh on every tool call, in this order:
-#
-#   1. HTTP header on the MCP request       X-Amplemarket-Api-Key: amp_...
-#   2. query string on the MCP server URL   https://host/mcp?amplemarket_key=amp_...
-#   3. environment variable on the server   AMPLEMARKET_API_KEY=amp_...
-#
-# (1) and (2) are per connection, so two people using the same deployment each
-# spend their own credits. (3) is a shared fallback for a single-tenant setup.
-#
-# Clients that support custom headers (Claude Code, most CLIs) should use (1).
-# Clients where setup is just "paste a URL" (Claude.ai custom connectors) use (2).
-#
-# Only the services a person actually supplies a key for will work; the rest
-# return a message explaining how to add one. Call `connection_auth_status`
-# to see what the current connection is authenticated for.
-# ===========================================================================
-
-class _Service(NamedTuple):
-    label: str
-    env_var: str
-    header: str
-    query: Tuple[str, ...]
-    key_hint: str
-
-SERVICES: Dict[str, _Service] = {
-    "amplemarket": _Service(
-        "Amplemarket", "AMPLEMARKET_API_KEY", "X-Amplemarket-Api-Key",
-        ("amplemarket_key", "amplemarket_api_key"), "amp_..."),
-    "orangeslice": _Service(
-        "OrangeSlice", "ORANGESLICE_API_KEY", "X-Orangeslice-Api-Key",
-        ("orangeslice_key", "orangeslice_api_key"), "osk_..."),
-    "attio": _Service(
-        "Attio", "ATTIO_API_KEY", "X-Attio-Api-Key",
-        ("attio_key", "attio_api_key"), "an Attio access token"),
-    "august": _Service(
-        "August", "AUGUST_API_KEY", "X-August-Api-Key",
-        ("august_key", "august_api_key"), "ak_..."),
-}
-
-
-def _current_request():
-    """The HTTP request behind the MCP call in flight, or None (e.g. stdio)."""
-    try:
-        from mcp.server.lowlevel.server import request_ctx
-        return getattr(request_ctx.get(), "request", None)
-    except (ImportError, LookupError, AttributeError):
-        return None
-
-
-def _clean(value: Optional[str]) -> str:
-    """Trim a supplied key, tolerating a pasted 'Bearer ' prefix and quotes."""
-    v = (value or "").strip().strip('"').strip("'")
-    if v.lower().startswith("bearer "):
-        v = v[7:].strip()
-    return v
-
-
-def _connection_key(service: str) -> str:
-    """Key supplied by whoever opened this connection (header, then URL query)."""
-    svc = SERVICES[service]
-    req = _current_request()
-    if req is None:
-        return ""
-    key = _clean(req.headers.get(svc.header))
-    if key:
-        return key
-    for name in svc.query:
-        key = _clean(req.query_params.get(name))
-        if key:
-            return key
-    return ""
-
-
-def _api_key(service: str) -> str:
-    """Resolve a service key for this connection, or explain how to add one."""
-    svc = SERVICES[service]
-    key = _connection_key(service) or _clean(os.environ.get(svc.env_var))
-    if not key:
-        raise RuntimeError(
-            f"No {svc.label} API key for this connection. Add your own key ({svc.key_hint}) "
-            f"by appending ?{svc.query[0]}=YOUR_KEY to the MCP server URL when you set up the "
-            f"connector, or by sending the {svc.header} header. A server-wide default can be "
-            f"set with the {svc.env_var} environment variable."
-        )
-    return key
-
-
-def _mask(key: str) -> str:
-    return f"{key[:4]}…{key[-4:]}" if len(key) > 12 else "****"
-
-
-@mcp.tool()
-def connection_auth_status() -> str:
-    """[Setup] Show which service API keys this connection is authenticated with,
-    where each key came from, and how to supply the missing ones. Use this first
-    when a tool reports a missing API key."""
-    out: Dict[str, Any] = {}
-    for name, svc in SERVICES.items():
-        connection = _connection_key(name)
-        server_default = _clean(os.environ.get(svc.env_var))
-        key = connection or server_default
-        out[svc.label] = {
-            "configured": bool(key),
-            "source": "this connection" if connection else ("server default" if server_default else None),
-            "key": _mask(key) if key else None,
-            "how_to_add": {
-                "url_query_param": f"{svc.query[0]}=YOUR_KEY (append to the MCP server URL)",
-                "http_header": f"{svc.header}: YOUR_KEY",
-            },
-        }
-    return json.dumps(out, indent=2)
 
 
 # ===========================================================================
@@ -141,9 +22,12 @@ def connection_auth_status() -> str:
 # ===========================================================================
 
 AM_BASE_URL = "https://api.amplemarket.com"
+AM_API_KEY = os.environ.get("AMPLEMARKET_API_KEY", "amp_4b6c21fbe89749796e9d")
 
 def _am_headers():
-    return {"Authorization": f"Bearer {_api_key('amplemarket')}", "Content-Type": "application/json"}
+    if not AM_API_KEY:
+        raise RuntimeError("AMPLEMARKET_API_KEY not set.")
+    return {"Authorization": f"Bearer {AM_API_KEY}", "Content-Type": "application/json"}
 
 def _am_get(path, params=None):
     r = httpx.get(f"{AM_BASE_URL}{path}", headers=_am_headers(), params=params, timeout=30)
@@ -778,20 +662,12 @@ def amplemarket_create_custom_signal_entry(token: str, data: dict) -> str:
 OS_MCP_URL = "http://localhost:8002/mcp"
 _os_session_id: Optional[str] = None
 
-def _os_get_session(api_key: str) -> str:
-    """Initialize a session with the OrangeSlice sidecar and cache the session ID.
-
-    The sidecar refuses unauthenticated requests, so the caller's key rides along
-    on the handshake too — the sidecar is stateless, so the cached ID is not
-    tied to whoever happened to open the first session."""
+def _os_get_session() -> str:
+    """Initialize a session with the OrangeSlice sidecar and cache the session ID."""
     global _os_session_id
     if _os_session_id:
         return _os_session_id
-    headers = {
-        "Content-Type": "application/json",
-        "Accept": "application/json, text/event-stream",
-        SERVICES["orangeslice"].header: api_key,
-    }
+    headers = {"Content-Type": "application/json", "Accept": "application/json, text/event-stream"}
     r = httpx.post(OS_MCP_URL, json={
         "jsonrpc": "2.0", "id": 0, "method": "initialize",
         "params": {"protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": {"name": "august-proxy", "version": "1"}}
@@ -801,18 +677,13 @@ def _os_get_session(api_key: str) -> str:
     return _os_session_id
 
 def _os_call(tool_name: str, arguments: dict) -> str:
-    """Call a tool on the local OrangeSlice MCP sidecar and return its text result.
-
-    The caller's own OrangeSlice key travels with the call — the sidecar scopes it
-    to that request only (AsyncLocalStorage), so concurrent users stay separate."""
+    """Call a tool on the local OrangeSlice MCP sidecar and return its text result."""
     clean_args = {k: v for k, v in arguments.items() if v is not None}
-    api_key = _api_key("orangeslice")
-    session_id = _os_get_session(api_key)
+    session_id = _os_get_session()
     headers = {
         "Content-Type": "application/json",
         "Accept": "application/json, text/event-stream",
         "mcp-session-id": session_id,
-        SERVICES["orangeslice"].header: api_key,
     }
     payload = {
         "jsonrpc": "2.0", "id": 1, "method": "tools/call",
@@ -971,9 +842,10 @@ def orangeslice_google_maps_search(query: str, location: Optional[str] = None, l
 # ===========================================================================
 
 ATTIO_BASE_URL = "https://api.attio.com/v2"
+ATTIO_API_KEY = os.environ.get("ATTIO_API_KEY", "a46ef67f2b875c2bd713f5e88b1c71cf9c59fba9a8eac1e9a5169f329d559b40")
 
 def _at_headers() -> dict:
-    return {"Authorization": f"Bearer {_api_key('attio')}", "Content-Type": "application/json"}
+    return {"Authorization": f"Bearer {ATTIO_API_KEY}", "Content-Type": "application/json"}
 
 def _at_get(path: str, params: dict | None = None) -> dict:
     r = httpx.get(ATTIO_BASE_URL + path, headers=_at_headers(), params=params or {}, timeout=30)
@@ -1711,12 +1583,15 @@ def attio_create_status(object_slug: str, attribute_slug: str, title: str, color
 # ===========================================================================
 
 AUG_BASE_URL = os.environ.get("AUGUST_BASE_URL", "https://app.august.law")
+AUG_API_KEY = os.environ.get("AUGUST_API_KEY", "ak_4QJMZSR78ERW16RBEFFC08934J2PR07K")
 
 # Nil UUID — pass as chat_id to POST /chats to start a brand-new chat thread.
 AUG_NIL_UUID = "00000000-0000-0000-0000-000000000000"
 
 def _aug_headers():
-    return {"Authorization": f"Bearer {_api_key('august')}", "Content-Type": "application/json"}
+    if not AUG_API_KEY:
+        raise RuntimeError("AUGUST_API_KEY not set.")
+    return {"Authorization": f"Bearer {AUG_API_KEY}", "Content-Type": "application/json"}
 
 def _aug_get(path, params=None):
     r = httpx.get(f"{AUG_BASE_URL}{path}", headers=_aug_headers(), params=params, timeout=60)
